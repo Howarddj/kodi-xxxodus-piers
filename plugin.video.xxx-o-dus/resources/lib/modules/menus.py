@@ -69,8 +69,8 @@ def mainMenu():
          ('[COLOR pink]Pictures',None,35,'pics','Pictures',True), \
          ('[COLOR pink]For Gay Men',None,47,'gaymen','Videos',True), \
          #('Comics',None,41,'comics','Comics',True), \
-         ('[COLOR red]Your History',None,20,'history','View Your History.',True), \
-         ('[COLOR red]Your Favourites',None,23,'favourites','View Your Favourites.',True), \
+         ('[COLOR red]Watch History',None,20,'history','View Your History.',True), \
+         ('[COLOR red]Favourites',None,23,'favourites','View Your Favourites.',True), \
          ('[COLOR red]Your Downloads',None,27,'downloads','View Your Downloads.',True), \
          ('[COLOR red]XXX-O-DUS Tools',None,6,'addon_info','Changelog, health check, parental controls, settings and reset.',True), \
          #('View Disclaimer',xbmc.translatePath(os.path.join(kodi.addonfolder, 'resources/files/disclaimer.txt')),17,'disclaimer','View XXX-O-DUS Disclaimer.',False), \

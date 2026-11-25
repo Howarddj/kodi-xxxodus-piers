@@ -79,7 +79,7 @@ class scraper:
                 if dirlst: buildDirectory(dirlst, isVideo=True)
         except Exception as e:
             log_utils.log('Error getting next page for %s :: Error: %s' % (site.title(),str(e)), log_utils.LOGERROR)
-            xbmcplugin.setContent(kodi.syshandle, 'movies')
+            xbmcplugin.setContent(kodi.syshandle, 'images' if pictures else 'videos')
             if 'chaturbate' in url: utils.setView('chaturbate')
             elif pictures: utils.setView('pictures')
             else: utils.setView('thumbs')

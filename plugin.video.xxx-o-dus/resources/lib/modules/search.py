@@ -117,9 +117,9 @@ def mainSearch(url):
                     kodi.notify(msg='%s failed to return results.' % failed_list, duration=4000, sound=True)
                     log_utils.log('Scrapers failing to return search results are :: : %s' % failed_list, log_utils.LOGERROR)
                 else: kodi.notify(msg='%s results found.' % str(source_num), duration=4000, sound=True)
-                xbmcplugin.setContent(kodi.syshandle, 'movies')
-                xbmcplugin.endOfDirectory(kodi.syshandle, cacheToDisc=True)
+                xbmcplugin.setContent(kodi.syshandle, 'videos')
                 utils.setView('search')
+                xbmcplugin.endOfDirectory(kodi.syshandle, cacheToDisc=True)
         else:
             search_url = eval(site + ".search_base") % term
             eval(site + ".content('%s')" % search_url)

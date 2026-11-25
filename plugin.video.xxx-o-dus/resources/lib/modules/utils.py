@@ -215,17 +215,19 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
                 #log_utils.log('Error adding item %s in BuildDir function ( %s %s ):: Error: %s' % (name,u,thumb,str(e)), log_utils.LOGERROR)
        
     if not stopend:
+        # Content type: these listings were all tagged 'movies', so skins with per-content view locks
+        # (Bingie's Skin.ForcedView.movies) applied the movie-library view to XXX-O-DUS menus.
         if chaturbate: 
-            xbmcplugin.setContent(kodi.syshandle, 'movies')
+            xbmcplugin.setContent(kodi.syshandle, 'videos')
             setView('chaturbate')
         elif pictures:
-            xbmcplugin.setContent(kodi.syshandle, 'movies')
+            xbmcplugin.setContent(kodi.syshandle, 'images')
             setView('pictures')
         elif isVideo: 
-            xbmcplugin.setContent(kodi.syshandle, 'movies')
+            xbmcplugin.setContent(kodi.syshandle, 'videos')
             setView('thumbs')
         else: 
-            xbmcplugin.setContent(kodi.syshandle, 'movies')
+            xbmcplugin.setContent(kodi.syshandle, 'files')
             setView('list')
     if ( not search ) and ( not stopend ):
         if cache: xbmcplugin.endOfDirectory(syshandle, cacheToDisc=True)
@@ -299,56 +301,15 @@ def setViewCM(viewtype):
     kodi.notify(kodi.get_name(),"%s view has been set to (%s)." % (viewtype.title(), viewid))
 
 def setView(name):
-
-    list_mode  = int(kodi.get_setting("list_view"))
-    thumb_mode = int(kodi.get_setting("thumb_view"))
-    search_mode = int(kodi.get_setting("search_view"))
-    picture_mode = int(kodi.get_setting("picture_view"))
-    chaturbate_mode = int(kodi.get_setting("chaturbate_view"))
-
-    kodi_name = kodi.kodiVersion()
-
-    if list_mode == 0:
-        if kodi_name == "Jarvis":
-            list_mode='50'
-        elif kodi_name == "Krypton":
-            list_mode='55'
-        else: list_mode='50'
-
-    if thumb_mode == 0:
-        if kodi_name == "Jarvis":
-            thumb_mode='500'
-        elif kodi_name == "Krypton":
-            thumb_mode='53'
-        else: thumb_mode='500'
-
-    if search_mode == 0:
-        if kodi_name == "Jarvis":
-            search_mode='500'
-        elif kodi_name == "Krypton":
-            search_mode='500'
-        else: search_mode='500'
-        
-    if picture_mode == 0:
-        if kodi_name == "Jarvis":
-            picture_mode='500'
-        elif kodi_name == "Krypton":
-            picture_mode='500'
-        else: picture_mode='500'
-       
-    if chaturbate_mode == 0:
-        if kodi_name == "Jarvis":
-            chaturbate_mode='50'
-        elif kodi_name == "Krypton":
-            chaturbate_mode='54'
-        else: chaturbate_mode='50'
-        
-    if name == 'list': xbmc.executebuiltin('Container.SetViewMode(%s)' % list_mode)
-    elif name == 'thumbs': xbmc.executebuiltin('Container.SetViewMode(%s)' % thumb_mode)
-    elif name == 'search': xbmc.executebuiltin('Container.SetViewMode(%s)' % search_mode)
-    elif name == 'pictures': xbmc.executebuiltin('Container.SetViewMode(%s)' % picture_mode)
-    elif name == 'chaturbate': xbmc.executebuiltin('Container.SetViewMode(%s)' % chaturbate_mode)
-    else: xbmc.executebuiltin('Container.SetViewMode(%s)' % list_mode)
+    # Only force a view the user saved via "Set ... to this view mode by default" (setting > 0).
+    # The old fallback forced Estuary's IDs (50/500/53/54/55) on every skin: Bingie has no 500, and
+    # with a locked view it hides every other view, so forcing 50 gave a blank screen.
+    setting = {'list': 'list_view', 'thumbs': 'thumb_view', 'search': 'search_view',
+               'pictures': 'picture_view', 'chaturbate': 'chaturbate_view'}.get(name, 'list_view')
+    try: view_id = int(kodi.get_setting(setting) or 0)
+    except ValueError: view_id = 0
+    if view_id > 0:
+        xbmc.executebuiltin('Container.SetViewMode(%d)' % view_id)
 
 @url_dispatcher.register('17',['url'])
 def viewDialog(url):

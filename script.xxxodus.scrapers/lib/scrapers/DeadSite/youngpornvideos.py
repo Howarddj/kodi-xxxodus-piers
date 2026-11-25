@@ -14,7 +14,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://www.youngpornvideos.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 305
 content_mode = 306
@@ -31,8 +31,8 @@ def menu():
 	try:
 		url = urljoin(base_domain,'categories/')
 		c = client.request(url)
-		r = re.findall('<ul class="ubox-ul">(.*?)<div id="tab2"\s+class="tab">',c, flags=re.DOTALL)[0]
-		pattern = """<a\s+href=['"]([^'"]+)['"]>(.*?)<.+?>(.*?)<"""
+		r = re.findall('<ul class="ubox-ul">(.*?)<div id="tab2"\\s+class="tab">',c, flags=re.DOTALL)[0]
+		pattern = """<a\\s+href=['"]([^'"]+)['"]>(.*?)<.+?>(.*?)<"""
 		r = re.findall(pattern,r)
 	except Exception as e:
 		log_utils.log('Fatal Error in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
@@ -89,6 +89,6 @@ def content(url,searched=False):
 	if searched: return str(len(r))
 
 	if not searched:
-		search_pattern = '''<a\s*href=['"]([^'"]+)['"]\s*class="next"'''
+		search_pattern = '''<a\\s*href=['"]([^'"]+)['"]\\s*class="next"'''
 		parse = base_domain
 		helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

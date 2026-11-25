@@ -45,7 +45,8 @@ def log(msg, level=LOGDEBUG, component=None):
         level = LOGNOTICE
     
     try:
-        if isinstance(msg, unicode):
+        # Python 3: there is no `unicode` type, and the old check crashed every log call
+        if PY2 and isinstance(msg, unicode):
             msg = '%s (ENCODED)' % (msg.encode('utf-8'))
 
         if req_level != LOGDEBUG or (enabled_comp is None or component in enabled_comp):
@@ -98,7 +99,7 @@ class Logger(object):
                     return
         
         try:
-            if isinstance(msg, unicode):
+            if PY2 and isinstance(msg, unicode):
                 msg = '%s (ENCODED)' % (msg.encode('utf-8'))
     
             kodi._log('%s: %s' % (self.__name, msg), level)
@@ -139,8 +140,8 @@ class Profiler(object):
         
     def dump_stats(self):
         if self._profiler is not None:
-            s = StringIO.StringIO()
-            params = (self.sort_by,) if isinstance(self.sort_by, basestring) else self.sort_by
+            s = StringIO.StringIO() if PY2 else StringIO()
+            params = (self.sort_by,) if isinstance(self.sort_by, (basestring if PY2 else str)) else self.sort_by
             ps = pstats.Stats(self._profiler, stream=s).sort_stats(*params)
             ps.print_stats()
             if self.file_path is not None:

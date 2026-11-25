@@ -14,7 +14,7 @@ dialog = xbmcgui.Dialog()
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://siska.video/'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 332
 content_mode = 333

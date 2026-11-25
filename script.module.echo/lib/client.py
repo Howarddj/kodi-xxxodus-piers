@@ -373,7 +373,7 @@ class cfcookie:
 
             jschl = re.findall('name="jschl_vc" value="(.+?)"/>', result)[0]
 
-            init = re.findall('setTimeout\(function\(\){\s*.*?.*:(.*?)};', result)[-1]
+            init = re.findall('setTimeout\\(function\\(\\){\\s*.*?.*:(.*?)};', result)[-1]
 
             builder = re.findall(r"challenge-form\'\);\s*(.*)a.v", result)[0]
 
@@ -436,7 +436,7 @@ class bfcookie:
             headers = {'User-Agent': ua, 'Referer': netloc}
             result = _basic_request(netloc, headers=headers, timeout=timeout)
 
-            match = re.findall('xhr\.open\("GET","([^,]+),', result)
+            match = re.findall('xhr\\.open\\("GET","([^,]+),', result)
             if not match:
                 return False
 
@@ -456,7 +456,7 @@ class bfcookie:
 
     # not very robust but lazieness...
     def getCookieString(self, content, rcksid):
-        vars = re.findall('toNumbers\("([^"]+)"', content)
+        vars = re.findall('toNumbers\\("([^"]+)"', content)
         value = self._decrypt(vars[2], vars[0], vars[1])
         cookie = "%s=%s;%s" % (self.COOKIE_NAME, value, rcksid)
         return cookie
@@ -482,14 +482,14 @@ class sucuri:
 
     def get(self, result):
         try:
-            s = re.compile("S\s*=\s*'([^']+)").findall(result)[0]
+            s = re.compile("S\\s*=\\s*'([^']+)").findall(result)[0]
             s = base64.b64decode(s)
             s = s.replace(' ', '')
-            s = re.sub('String\.fromCharCode\(([^)]+)\)', r'chr(\1)', s)
-            s = re.sub('\.slice\((\d+),(\d+)\)', r'[\1:\2]', s)
-            s = re.sub('\.charAt\(([^)]+)\)', r'[\1]', s)
-            s = re.sub('\.substr\((\d+),(\d+)\)', r'[\1:\1+\2]', s)
-            s = re.sub(';location.reload\(\);', '', s)
+            s = re.sub('String\\.fromCharCode\\(([^)]+)\\)', r'chr(\1)', s)
+            s = re.sub('\\.slice\\((\\d+),(\\d+)\\)', r'[\1:\2]', s)
+            s = re.sub('\\.charAt\\(([^)]+)\\)', r'[\1]', s)
+            s = re.sub('\\.substr\\((\\d+),(\\d+)\\)', r'[\1:\1+\2]', s)
+            s = re.sub(';location.reload\\(\\);', '', s)
             s = re.sub(r'\n', '', s)
             s = re.sub(r'document\.cookie', 'cookie', s)
 

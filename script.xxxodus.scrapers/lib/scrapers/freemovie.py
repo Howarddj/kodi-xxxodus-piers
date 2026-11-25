@@ -13,7 +13,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = 'freeomovie'
 base_domain  = 'https://freeomovie.to'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'movies'
 menu_mode    = 410
 content_mode = 411
@@ -31,6 +31,7 @@ def menu():
         
 @utils.url_dispatcher.register('%s' % content_mode,['url'],['searched'])
 def content(url,searched=False):
+    r = []  # keep the loop below safe if the request fails
     try:
         ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36'
         headers = {'User-Agent': ua}
@@ -54,12 +55,14 @@ def content(url,searched=False):
             #dialog.ok("I",str(i))
             name = i.a['title']
             url2 = i.a['href']
-            icon = i.find('img', class_={'lazyload rmbd'})['data-src']
+            # the site's thumbnail markup changed; accept any lazy-loaded or plain <img>
+            img = i.find('img', class_={'lazyload rmbd'}) or i.find('img')
+            icon = (img.get('data-src') or img.get('data-lazy-src') or img.get('src') or '') if img else ''
             #icon = i.img['data-src']
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': url2, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'folder': False})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     if dirlst: buildDirectory(dirlst, stopend=True, isVideo = True, isDownloadable = True)
     else:
         if (not searched):
@@ -71,7 +74,7 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''<a class=['"]next\s*page.*?['"]\s*href=['"]([^'"]+)'''
+            search_pattern = '''<a class=['"]next\\s*page.*?['"]\\s*href=['"]([^'"]+)'''
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename)
         except Exception as e: 
             log_utils.log('Error getting next page for %s :: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)

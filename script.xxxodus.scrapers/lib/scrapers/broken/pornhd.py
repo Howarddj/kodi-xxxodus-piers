@@ -13,7 +13,7 @@ dialog = xbmcgui.Dialog()
 
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.pornhd.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 224
 content_mode = 225

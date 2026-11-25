@@ -12,7 +12,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.8muses.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'comics'
 
 pic_men_mode = 756
@@ -51,11 +51,11 @@ def menu(url=None):
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': i[0], 'mode': comics_mode, 'icon': i[2], 'fanart': fanarts, 'folder': True})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst:
         buildDirectory(dirlst, stopend=True, pictures=True)    
-        search_pattern = '''<span\s*class=['"]next['"]>\s*<a\s*href=['"]([^'"]+)['"]>'''
+        search_pattern = '''<span\\s*class=['"]next['"]>\\s*<a\\s*href=['"]([^'"]+)['"]>'''
         parse = base_domain
         helper.scraper().get_next_page(pic_men_mode,url,search_pattern,filename,parse,pictures=True)    
     else:
@@ -107,7 +107,7 @@ def comics(url=None):
                 fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
                 dirlst.append({'name': name, 'url': i[0], 'mode': comics_mode, 'icon': i[2], 'fanart': fanarts, 'folder': True})
             except Exception as e:
-                log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+                log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     else:
         num = 1
         for i in r:
@@ -116,12 +116,12 @@ def comics(url=None):
                 fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
                 dirlst.append({'name': name, 'url': i[0], 'mode': pic_v_mode, 'icon': i[1], 'fanart': fanarts, 'folder': False})
             except Exception as e:
-                log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+                log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
             num += 1
             
     if dirlst:
         buildDirectory(dirlst, stopend=True, pictures=True)    
-        search_pattern = '''<span\s*class=['"]next['"]>\s*<a\s*href=['"]([^'"]+)['"]>'''
+        search_pattern = '''<span\\s*class=['"]next['"]>\\s*<a\\s*href=['"]([^'"]+)['"]>'''
         parse = base_domain
         helper.scraper().get_next_page(pic_men_mode,url,search_pattern,filename,parse,pictures=True)    
     else:

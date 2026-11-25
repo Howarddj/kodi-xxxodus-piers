@@ -153,21 +153,33 @@ def get(function, duration, *args):
     try:
         key = _hash_function(function, args)
         cache_result = cache_get(key)
-        if cache_result:
-            if _is_cache_valid(cache_result['date'], duration):
-                return ast.literal_eval(cache_result['value'].encode('utf-8'))
+        if cache_result and _is_cache_valid(cache_result['date'], duration):
+            ok, value = _literal(cache_result['value'])
+            if ok: return value
 
-        fresh_result = repr(function(*args))
-        if not fresh_result:
+        fresh = function(*args)
+        if not fresh:
             # If the cache is old, but we didn't get fresh result, return the old cache
             if cache_result:
-                return cache_result
+                ok, value = _literal(cache_result['value'])
+                if ok: return value
             return None
 
-        cache_insert(key, fresh_result)
-        return ast.literal_eval(fresh_result.encode('utf-8'))
+        # Returning the real object (not literal_eval(repr(obj))) keeps non-literal results such as
+        # page HTML working; the old round-trip raised SyntaxWarnings and then returned None.
+        cache_insert(key, repr(fresh))
+        return fresh
     except Exception:
         return None
+
+def _literal(text):
+    import warnings
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', SyntaxWarning)
+            return True, ast.literal_eval(text.encode('utf-8') if PY2 else text)
+    except Exception:
+        return False, None
 
 def timeout(function, *args):
     try:
@@ -200,7 +212,7 @@ def cache_insert(key, value):
         "UPDATE %s SET value=?,date=? WHERE key=?"
         % cache_table, (value, now, key))
 
-    if update_result.rowcount is 0:
+    if update_result.rowcount == 0:
         cursor.execute(
             "INSERT INTO %s Values (?, ?, ?)"
             % cache_table, (key, value, now)
@@ -253,7 +265,7 @@ def _hash_function(function_instance, *args):
 
 
 def _get_function_name(function_instance):
-    return re.sub('.+\smethod\s|.+function\s|\sat\s.+|\sof\s.+', '', repr(function_instance))
+    return re.sub('.+\\smethod\\s|.+function\\s|\\sat\\s.+|\\sof\\s.+', '', repr(function_instance))
 
 
 def _generate_md5(*args):

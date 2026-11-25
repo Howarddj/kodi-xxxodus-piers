@@ -15,7 +15,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.perfectgirls.xxx'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 216
 content_mode = 217
@@ -54,7 +54,7 @@ def menu():
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': url, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: buildDirectory(dirlst)    
     else:
@@ -92,7 +92,7 @@ def content(url,searched=False):
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': media_url, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': description, 'folder': False})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     if dirlst: buildDirectory(dirlst, stopend=False, isVideo = True, isDownloadable = True)
     else:
         if (not searched):
@@ -107,7 +107,7 @@ def content(url,searched=False):
             pattern = r'''((?:http|https)(?:\:\/\/)(?:www)(?:\/\/|\.)(perfectgirls.net)\/(category\/)([0-9+]\/)(.+?\/))([0-9]+)'''
             r = re.search(pattern,url)
             base = r.group(1)
-            search_pattern = '''<a\s*class=['"]btn_wrapper__btn['"]\s*href=['"]([^'"]+)['"]>Next'''
+            search_pattern = '''<a\\s*class=['"]btn_wrapper__btn['"]\\s*href=['"]([^'"]+)['"]>Next'''
             parse = base         
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
         except Exception as e: 

@@ -64,10 +64,11 @@ def _pd_update(pd, percent, line1='', line2='', line3=''):
         else: pd.update(percent)
 
 def busy():
-    return execute('ActivateWindow(busydialog)')
+    # Kodi 18+ refuses DialogBusy from add-ons ("addons must not activate DialogBusy")
+    if PY2: return execute('ActivateWindow(busydialog)')
 
 def idle():
-    return execute('Dialog.Close(busydialog)')
+    if PY2: return execute('Dialog.Close(busydialog)')
 if PY2:
     def execute_jsonrpc(command):
         if not isinstance(command, basestring):
@@ -129,11 +130,11 @@ def get_kodi_version():
     class KodiVersion(object):
         __metaclass__ = MetaClass
         version = xbmc.getInfoLabel('System.BuildVersion').decode('utf-8') if PY2 else xbmc.getInfoLabel('System.BuildVersion')
-        match = re.search('([0-9]+)\.([0-9]+)', version)
+        match = re.search('([0-9]+)\\.([0-9]+)', version)
         if match: major, minor = match.groups()
         match = re.search('-([a-zA-Z]+)([0-9]*)', version)
         if match: tag, tag_version = match.groups()
-        match = re.search('\w+:(\w+-\w+)', version)
+        match = re.search('\\w+:(\\w+-\\w+)', version)
         if match: revision = match.group(1)
         
         try: major = int(major)
@@ -182,9 +183,10 @@ def add_item(queries, list_item, fanart='', is_folder=None, is_playable=None, to
     else:
         playable = 'true' if is_playable else 'false'
 
-    liz_url = queries if isinstance(queries, basestring) else get_plugin_url(queries)
+    liz_url = queries if isinstance(queries, (basestring if PY2 else str)) else get_plugin_url(queries)  # no basestring on Python 3
     if not list_item.getProperty('fanart_image'): list_item.setProperty('fanart_image', fanart)
-    list_item.setInfo('video', {'title': list_item.getLabel()})
+    try: list_item.getVideoInfoTag().setTitle(list_item.getLabel())  # Kodi 20+; setInfo('video') is deprecated
+    except AttributeError: list_item.setInfo('video', {'title': list_item.getLabel()})
     list_item.setProperty('isPlayable', playable)
     list_item.addContextMenuItems(menu_items, replaceItems=replace_menu)
     xbmcplugin.addDirectoryItem(int(sys.argv[1]), liz_url, list_item, isFolder=is_folder, totalItems=total_items)
@@ -298,7 +300,7 @@ def sortX(string):
     try:
         string = re.sub(r'<.+?>','',string)
         string = string.replace('\\x','REPL').replace('\\','')
-        string = re.sub("""REPL[0-f][0-f]""",'',str(part1)) 
+        string = re.sub("""REPL[0-f][0-f]""",'',string)  # was str(part1), an undefined name
         return string
     except: return string
             
@@ -316,7 +318,7 @@ def countGitHubIssues(url):
         import cache
         import dom_parser2
         c = cache.get(client.request, 1, url)
-        r = dom_parser2.parse_dom(c, 'div', {'class': re.compile('table-list-header-toggle\sstates\sfloat-left\spl-\d+')})
+        r = dom_parser2.parse_dom(c, 'div', {'class': re.compile('table-list-header-toggle\\sstates\\sfloat-left\\spl-\\d+')})
         r = dom_parser2.parse_dom(r, 'a')
         r = [re.sub('<.+?>','',i.content).replace('\n','').lstrip() for i in r]
         return 'Issues: %s - %s' % (r[0],r[1])
@@ -398,7 +400,7 @@ class WorkingDialog(object):
             self.wd.create()
             self.update(0)
         except:
-            xbmc.executebuiltin('ActivateWindow(busydialog)')
+            pass  # Kodi 18+ refuses DialogBusy from add-ons
     
     def __enter__(self):
         return self

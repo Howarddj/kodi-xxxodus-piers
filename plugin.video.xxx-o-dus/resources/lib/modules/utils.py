@@ -10,6 +10,24 @@ import dom_parser2
 import cache
 import log_utils
 import pyxbmct
+
+def _set_video_info(item, title, plot=None):
+    # Kodi 20+: ListItem.setInfo('video', ...) is deprecated; use the InfoTagVideo setters
+    try:
+        tag = item.getVideoInfoTag()
+        tag.setTitle(title)
+        if plot is not None: tag.setPlot(plot)
+    except AttributeError:
+        info = {'title': title}
+        if plot is not None: info['plot'] = plot
+        item.setInfo('video', info)
+
+def _add_video_stream(item, codec):
+    # Kodi 20+: ListItem.addStreamInfo() is deprecated; use InfoTagVideo.addVideoStream()
+    try:
+        item.getVideoInfoTag().addVideoStream(xbmc.VideoStreamDetail(codec=codec))
+    except AttributeError:
+        item.addStreamInfo('video', {'codec': codec})
 #pyxbmct.skin.estuary = False
 pyxbmct = pyxbmct.addonwindow
 from url_dispatcher import URL_Dispatcher
@@ -77,7 +95,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
                 
             kodi.giveColor(description, 'white', True)
             if pictures: item.setInfo('picture', {'title': name, 'plot': description} )
-            else: item.setInfo('video', {'title': name, 'plot': description} )
+            else: _set_video_info(item, name, description)
 
             try: name = quote_plus(name)
             except: name = name.replace(' ','+')
@@ -188,8 +206,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
                 cm=[]
 
             if isVideo:
-                codec_info = {'codec': 'h264'}
-                item.addStreamInfo('video', codec_info)
+                _add_video_stream(item, 'h264')
             
             xbmcplugin.addDirectoryItem(handle=syshandle, url=u, listitem=item, isFolder=_folder)
         

@@ -14,7 +14,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.vrsmash.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'vr'
 menu_mode    = 284
 content_mode = 285
@@ -34,7 +34,7 @@ def menu():
         soup = BeautifulSoup(link, 'html.parser')
         r = soup.find_all('div', class_={'tile tile-category'})
         if ( not r ):
-            log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
+            log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(link)[:1000]), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
             quit()
     except Exception as e:
@@ -54,7 +54,7 @@ def menu():
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': title, 'url': media_url, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: buildDirectory(dirlst)    
     else:
@@ -69,7 +69,7 @@ def content(url,searched=False):
         soup = BeautifulSoup(link, 'html.parser')
         r = soup.find_all('div', class_={'tile-thumbnail'})
         if ( not r ) and ( not searched ):
-            log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
+            log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(link)[:1000]), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
             quit()
     except Exception as e:
@@ -102,7 +102,7 @@ def content(url,searched=False):
     if searched: return str(len(r))
     
     if not searched:
-        search_pattern = '''<li\s*class=['"]next['"]><a\s*href=['"]([^'"]+)'''
+        search_pattern = '''<li\\s*class=['"]next['"]><a\\s*href=['"]([^'"]+)'''
         parse = base_domain
         
         helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

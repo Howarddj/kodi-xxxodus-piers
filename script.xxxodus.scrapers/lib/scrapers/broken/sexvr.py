@@ -12,7 +12,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.sexvr.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'vr'
 menu_mode    = 288
 content_mode = 289
@@ -110,7 +110,7 @@ def content(url,searched=False):
     if searched: return str(len(r))
     
     if not searched:
-        try: parse = re.findall('''<link\s*rel=['"]canonical['"]\s*href=['"]([^'"]+)''',r)[0]
+        try: parse = re.findall('''<link\\s*rel=['"]canonical['"]\\s*href=['"]([^'"]+)''',r)[0]
         except: parse = base_domain
-        search_pattern = '''<link\s*rel=['"]next['"]\s*href=['"]([^'"]+)'''        
+        search_pattern = '''<link\\s*rel=['"]next['"]\\s*href=['"]([^'"]+)'''        
         helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

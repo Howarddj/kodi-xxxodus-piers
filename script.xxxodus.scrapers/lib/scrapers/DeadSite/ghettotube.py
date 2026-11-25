@@ -14,7 +14,7 @@ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.ghettotube.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 330
 content_mode = 331
@@ -102,7 +102,7 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''a\s*href\=['"]([^'"]+)['"]\s+class=['"]next'''
+            search_pattern = '''a\\s*href\\=['"]([^'"]+)['"]\\s+class=['"]next'''
             parse = base_domain        
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename)
         except Exception as e: 

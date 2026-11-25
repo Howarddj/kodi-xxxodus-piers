@@ -13,7 +13,7 @@ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://watchxxxfreeinhd.com/'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'scenes'
 menu_mode    = 234
 content_mode = 235
@@ -50,7 +50,7 @@ def menu():
 			fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
 			dirlst.append({'name': name, 'url': url, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
 		except Exception as e:
-			log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+			log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
 
 	if dirlst: buildDirectory(dirlst)    
 	else:
@@ -62,7 +62,7 @@ def content(url,searched=False):
 
     try:
         c = client.request(url)
-        r = dom_parser2.parse_dom(c, 'li', {'class': re.compile('border-radius-\d*\s*box-shadow')})
+        r = dom_parser2.parse_dom(c, 'li', {'class': re.compile('border-radius-\\d*\\s*box-shadow')})
         r = [(dom_parser2.parse_dom(i, 'a', req=['href','title']), \
             dom_parser2.parse_dom(i, 'img', req='data-lazy-src')) \
             for i in r if i]
@@ -90,7 +90,7 @@ def content(url,searched=False):
             if PY2: dirlst.append({'name': name, 'url': content_url, 'mode': player_mode, 'icon': i[2].encode('utf-8'), 'fanart': fanarts, 'description': description, 'folder': False})
             else: dirlst.append({'name': name, 'url': content_url, 'mode': player_mode, 'icon': i[2], 'fanart': fanarts, 'description': description, 'folder': False})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: buildDirectory(dirlst, stopend=True, isVideo = True, isDownloadable = True)
     else:
@@ -101,7 +101,7 @@ def content(url,searched=False):
     if searched: return str(len(r))
     if not searched:
         try:
-            search_pattern = '''\<a\s*href\=['"]([^'"]+)['"]\>Next'''
+            search_pattern = '''\\<a\\s*href\\=['"]([^'"]+)['"]\\>Next'''
             parse = base_domain        
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
         except Exception as e: 

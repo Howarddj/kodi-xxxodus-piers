@@ -10,7 +10,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://www.gotporn.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 248
 content_mode = 249
@@ -104,7 +104,7 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''\<link\s*rel\=['"]next['"]\s*href\=['"]([^'"]+)'''
+            search_pattern = '''\\<link\\s*rel\\=['"]next['"]\\s*href\\=['"]([^'"]+)'''
             parse = base_domain        
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename)
         except Exception as e: 

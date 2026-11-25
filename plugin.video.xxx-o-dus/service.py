@@ -62,7 +62,7 @@ try:
                         # r=response.read()
                         # response.close()
                         if '.m3u8' in r:
-                            content = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; content = unquote_plus(content)
+                            content = re.compile('default_subject:\\s\"([^,]+)",').findall(r)[0]; content = unquote_plus(content)
                             try: content=content.encode('utf-8') if PY2 else content
                             except: content=content
                             xbmcgui.Dialog().notification(title + ' online!',content, iconimage, 7500, True)

@@ -12,7 +12,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://overthumbs.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 214
 content_mode = 215
@@ -66,7 +66,7 @@ def content(url,searched=False):
 
     try:
         c = client.request(url)
-        r = dom_parser2.parse_dom(c, 'div', {'class': re.compile('v-content\d+\s*aft')})
+        r = dom_parser2.parse_dom(c, 'div', {'class': re.compile('v-content\\d+\\s*aft')})
         r = dom_parser2.parse_dom(r, 'a', req=['href','title'])
         r = [(i.attrs['href'], \
             i.attrs['title'], \
@@ -104,7 +104,7 @@ def content(url,searched=False):
     if searched: return str(len(r))
     
     if not searched:
-        search_pattern = '''<a\s*href=['"]([^'"]+)['"]\s*class=['"]pag-next['"]>next<\/a>'''
+        search_pattern = '''<a\\s*href=['"]([^'"]+)['"]\\s*class=['"]pag-next['"]>next<\\/a>'''
         parse = base_domain
         
         helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

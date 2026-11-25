@@ -1,5 +1,26 @@
 [COLOR pink]Welcome To XXX-O-DUS[/COLOR]
 
+[COLOR aqua]XXXODUS : 99.00.030 (Kodi 22 / 23 patched build)[/COLOR]
+
+[COLOR aqua]SCRAPERS : 99.00.021[/COLOR]
+
+
+[COLOR yellow]FIXED[/COLOR]
+[COLOR white]Logging crashed on Python 3 and hid every scraper error ("name 'unicode' is not defined")[/COLOR]
+[COLOR white]Freemovie crashed building its list (KeyError: 1)[/COLOR]
+[COLOR white]Chaturbate menu failed when the site returned a non-JSON page[/COLOR]
+[COLOR white]ZZCartoon playback crashed when no stream was found (IndexError)[/COLOR]
+[COLOR white]Pandamovies, Youjizz, Vrsmash, Eporner, Submityourflix: undefined-name crashes[/COLOR]
+[COLOR white]Chaturbate "Search By Username" and downloader link selection crashed[/COLOR]
+[COLOR white]Check XXX-O-DUS Health no longer reports a failed directory[/COLOR]
+[COLOR white]Cache returned nothing for non-literal results[/COLOR]
+[COLOR white]Removed ~400 invalid escape sequences (SyntaxWarning on Python 3.12+)[/COLOR]
+[COLOR white]No more "addons must not activate DialogBusy" warnings[/COLOR]
+[COLOR white]Listings use InfoTagVideo instead of the deprecated setInfo()/addStreamInfo()[/COLOR]
+
+
+[COLOR pink]Welcome To XXX-O-DUS[/COLOR]
+
 [COLOR aqua]XXXODUS : Current Version 5.00.025[/COLOR]
 
 [COLOR aqua]SCRAPERS : Current Version 5.00.018[/COLOR]

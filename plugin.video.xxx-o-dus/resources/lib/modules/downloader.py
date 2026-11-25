@@ -152,7 +152,7 @@ def removeDownload(url, name):
 @utils.url_dispatcher.register('26',['url', 'name', 'iconimage'])
 def find_link(url, name, iconimage, downloadableLink=False):
 
-    xbmc.executebuiltin("ActivateWindow(busydialog)")
+    pass  # Kodi 18+ refuses DialogBusy from add-ons
 
     if '|SPLIT|' in url: url = url.split('|SPLIT|')[0]
     if 'site=' in url: url = url.split('site=')[0]
@@ -204,6 +204,7 @@ def find_link(url, name, iconimage, downloadableLink=False):
             log_utils.log('%s returned by XXX-O-DUS backup resolver.' % (u), log_utils.LOGNOTICE)
         if (not isinstance(u, str)): 
             try:
+                from resources.lib.modules.player import multilinkselector  # was never imported
                 u = multilinkselector(u)
             except: pass       
         if u == 'quit': 

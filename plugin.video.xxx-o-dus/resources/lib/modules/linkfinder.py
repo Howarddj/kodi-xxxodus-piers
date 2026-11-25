@@ -60,7 +60,7 @@ def find(url, name=None, iconimage=None, pattern=None):
 				findid = re.findall('''video_id=(.*?)\'''',c,flags=re.DOTALL)[0]
 				requesturl = 'https://xdrive.cc/secure_link?ip=81.12.123.22&video_id='+findid
 				c = client.request(requesturl)
-				r = re.findall('''\["(.*?)",''',c,flags=re.DOTALL)[0].replace('\\','')
+				r = re.findall('''\\["(.*?)",''',c,flags=re.DOTALL)[0].replace('\\','')
 				xbmc.Player().play(r)
 			else:
 				r = re.findall(pattern,c)

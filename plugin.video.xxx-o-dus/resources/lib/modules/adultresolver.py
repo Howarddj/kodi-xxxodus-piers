@@ -220,7 +220,7 @@ class streamer:
                 else: s = client.parseDOM(r, 'source', ret='src', attrs = {'type': 'video.+?'})
                 
                 if not s: 
-                    log_utils.log('Error resolving %s :: Error: %s' % (url,str(e)), log_utils.LOGERROR)
+                    log_utils.log('Error resolving %s :: Error: no playable source found' % url, log_utils.LOGERROR)
                     return
                     
                 s = ['http:' + i if i.startswith('//') else i for i in s]
@@ -338,14 +338,14 @@ class streamer:
             pattern = r'''(?:)file\:\s*[\'\"]([^\'\"]+)[\'\"]\,\s*\w+\:\s*[\'\"]([^\'\"]+)'''
             r=re.findall(pattern,r)
             r = [(i[1],i[0]) for i in r if i]
-            u = sorted(r, key=lambda x: int(re.search('(\d+)', x[0]).group(1)), reverse=True)
+            u = sorted(r, key=lambda x: int(re.search('(\\d+)', x[0]).group(1)), reverse=True)
             return u
         except: return
 
     def justporno(self, url):
         try:        
             r = client.request(url)
-            s = re.findall('''source\s*src=['"]+([^'"]+)''', r)[0]
+            s = re.findall('''source\\s*src=['"]+([^'"]+)''', r)[0]
             ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36'
             headers = {'User-Agent': ua}
             response = requests.get(s, headers=headers, stream=True)
@@ -456,7 +456,7 @@ class streamer:
     def freeones(self, url):
         try:        
             u = client.request(url)
-            e = re.findall('_script"\ssrc="([^"]*)', u)[0]
+            e = re.findall('_script"\\ssrc="([^"]*)', u)[0]
             return self.generic(e)
         except:
             return
@@ -497,15 +497,15 @@ class streamer:
     def pornhub(self, url):
         try:
             r = client.request(url)
-            vars = re.findall('var\s+(.+?)\s*=\s*(.+?);', r)
-            link = re.findall('quality_\d+p\s*=\s*(.+?);', r)[0]
+            vars = re.findall('var\\s+(.+?)\\s*=\\s*(.+?);', r)
+            link = re.findall('quality_\\d+p\\s*=\\s*(.+?);', r)[0]
             link = [i.strip() for i in link.split('+')]
             link = [i for i in link if i.startswith('*/')]
-            link = [re.sub('^\*/', '', i) for i in link]
+            link = [re.sub('^\\*/', '', i) for i in link]
             link = [(i, [x[1] for x in vars if x[0] == i]) for i in link]
             link = [i[1][0] if i[1] else i[0] for i in link]
             link = ''.join(link)
-            link = re.sub('\s|\+|\'|\"', '', link)
+            link = re.sub('\\s|\\+|\'|\"', '', link)
             return link
         except:
             return 
@@ -513,7 +513,7 @@ class streamer:
     def pornheel(self, url):
         try:
             u = client.request(url)
-            e = re.findall('<a\shref="([^"]*)".+?">Streaming\s([^<]*)', u)
+            e = re.findall('<a\\shref="([^"]*)".+?">Streaming\\s([^<]*)', u)
             e = [(client.request(i[0], output='geturl'), i[1]) for i in e if i]
             return e
         except:
@@ -581,7 +581,7 @@ class streamer:
             express = '<div id="player-embed">.+?<iframe src="(.+?)"'
             link = re.compile(express, re.MULTILINE|re.DOTALL).findall(url)[0]
             dir = client.request(link)
-            dir = dir.replace('\/', '/')
+            dir = dir.replace('\\/', '/')
             express = '"src":"(.+?)"'
             link = re.compile(express, re.MULTILINE|re.DOTALL).findall(dir)[0]
             return link
@@ -605,7 +605,7 @@ class streamer:
             link = re.compile(express, re.MULTILINE|re.DOTALL).findall(url)[0]
             link = 'http://www.nuvid.com/player_config_json/?vid=' + link + '&aid=0&domain_id=0&embed=0&ref=&check_speed=0'
             html = client.request(link)
-            html = html.replace('\/', '/')
+            html = html.replace('\\/', '/')
             express2 = '"hq":"(.+?)"'
             express3 = '"lq":"(.+?)"'
             play = re.compile(express2, re.MULTILINE|re.DOTALL).findall(html)
@@ -655,7 +655,7 @@ class streamer:
     def streamate(self, url):
         try:
             u = client.request(url)
-            e = re.findall('iframe\.src = \'([^\']*)', u)
+            e = re.findall('iframe\\.src = \'([^\']*)', u)
             e = 'https://www.streamate.com' + e[0]
             r = client.request(e)
             r = re.findall('data-manifesturl="([^"]*)', r)[0]
@@ -667,7 +667,7 @@ class streamer:
     def spreadporn(self, url):
         try:
             u = client.request(url)
-            e = re.findall('(?s)<li class.+?"stream".+?k="([^"]*).+?c="([^"]*)"\salt="([^"]*)', u)
+            e = re.findall('(?s)<li class.+?"stream".+?k="([^"]*).+?c="([^"]*)"\\salt="([^"]*)', u)
             return e
         except:
             return
@@ -1085,7 +1085,7 @@ class streamer:
         
     def vrsmash(self,url):
         link = client.request(url)
-        play = re.findall('''"contentUrl":\s+"(.*?)"''',link,flags=re.DOTALL)[0]
+        play = re.findall('''"contentUrl":\\s+"(.*?)"''',link,flags=re.DOTALL)[0]
         xbmc.executebuiltin("Dialog.Close(busydialog)")
         xbmc.Player().play(play)
 
@@ -1171,8 +1171,19 @@ class streamer:
         link = requests.get(url,headers=headers).text
         soup = BeautifulSoup(link, 'html.parser')
         data = soup.find('div', class_={'player'})
-        media_url = re.findall('''video_url:\s+['"](.*?)['"]''',str(data),flags=re.DOTALL)[0]
-        xbmc.Player().play(media_url)
+        # The player div / spacing changed on the site; search the whole page and accept a <source> tag,
+        # and tell the user instead of crashing with IndexError when nothing playable is found.
+        found = re.findall(r'''video_url\s*:\s*['"](.*?)['"]''', str(data) if data else link, flags=re.DOTALL) \
+             or re.findall(r'''video_url\s*:\s*['"](.*?)['"]''', link, flags=re.DOTALL)
+        if not found:
+            src = soup.find('source', src=True)
+            found = [src['src']] if src else []
+        if not found:
+            kodi.idle()
+            kodi.notify(msg='No playable stream found on ZZCartoon (the site may have changed)', duration=6000)
+            log_utils.log('zzcartoon: no video_url/source found for %s' % url, log_utils.LOGERROR)
+            return
+        xbmc.Player().play(found[0])
     def daftporn(self, url):
         headers = {'User-Agent' : 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'}
         link = requests.get(url,headers=headers).text

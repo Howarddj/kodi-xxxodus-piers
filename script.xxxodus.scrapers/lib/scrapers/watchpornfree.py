@@ -15,7 +15,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://watchpornfree.watch'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'movies'
 menu_mode    = 324
 content_mode = 325
@@ -90,6 +90,6 @@ def content(url,searched=False):
     if searched: return str(len(r))
 
     if not searched:
-        search_pattern = '''<a\s+class="next page-numbers".*?href=['"]([^'"]+)['"]'''
+        search_pattern = '''<a\\s+class="next page-numbers".*?href=['"]([^'"]+)['"]'''
         parse = base_domain
         helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

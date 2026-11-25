@@ -17,7 +17,7 @@ ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 headers = {'User-Agent': ua}
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://chaturbate.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'cam'
 menu_mode    = 300
 content_mode = 301
@@ -40,6 +40,16 @@ except:
     pass
 conn.close()
 
+def _get_json(url):
+    # Chaturbate sometimes returns HTML (Cloudflare challenge / moved endpoint); .json() then raised
+    # requests.exceptions.JSONDecodeError and the whole menu failed.
+    try:
+        r = requests.get(url, headers=headers, timeout=20)
+        return r.json()
+    except Exception as e:
+        log_utils.log('Chaturbate request failed for %s :: %s' % (url, str(e)), log_utils.LOGERROR)
+        return None
+
 @utils.url_dispatcher.register('%s' % menu_mode)
 def menu():
     
@@ -47,14 +57,15 @@ def menu():
     
     url = 'https://chaturbate.com/api/ts/hashtags/tag-table-data/?sort=&page=1&g=&limit=100'
     #r = requests.get(url, headers=headers).json()
-    link = requests.get(url,headers=headers).json()
+    link = _get_json(url)  # None when Chaturbate answers with a challenge page instead of JSON
     dirlst = []
     icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/main/%s.png' % filename))
     fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
     dirlst.append({'name': 'Monitored Performers', 'url': 'none', 'mode': 30, 'icon': icon, 'fanart': fanarts, 'folder': True})
     dirlst.append({'name': 'Search By Username', 'url': 'none', 'mode': 32, 'icon': icon, 'fanart': fanarts, 'folder': False})
     dirlst.append({'name': 'Rooms By Tag', 'url': 'tags', 'mode': 302, 'icon': icon, 'fanart': fanarts, 'folder': True})
-    for i in link['hashtags']:
+    if link is None: kodi.notify(msg='Chaturbate tag list unavailable right now', duration=5000)
+    for i in (link or {}).get('hashtags', []):
         try:
             cat = i['hashtag']#.title()
             viewercount = i['viewer_count']
@@ -62,7 +73,7 @@ def menu():
             url2 = ('https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&hashtags=%s&limit=100&offset=0' % cat )
             dirlst.append({'name': cat.title(), 'url': url2, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     #dialog.ok("DIRLIST",str(dirlst))
     if dirlst: buildDirectory(dirlst)    
     else:
@@ -71,9 +82,9 @@ def menu():
         
 @utils.url_dispatcher.register('%s' % content_mode,['url'],['searched'])
 def content(url,searched=False):
-    link = requests.get(url,headers=headers).json()
+    link = _get_json(url)
     dirlst = []
-    data = link['rooms']
+    data = (link or {}).get('rooms', [])
     for i in data:
         try:
             pname = i['username']
@@ -95,7 +106,7 @@ def content(url,searched=False):
         kodi.notify(msg='No Content Found')
         quit()
         
-    search_pattern = '''<li><a\s*href=['"]([^'"]+)['"]\s*class=['"]next endless_page_link'''
+    search_pattern = '''<li><a\\s*href=['"]([^'"]+)['"]\\s*class=['"]next endless_page_link'''
     parse = base_domain
     helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
     
@@ -117,11 +128,11 @@ def byTags(url):
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': url2, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'description': name, 'folder': True})
         except Exception: pass
-            #log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            #log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: 
         try:
-            np = re.findall('''<a\s*href=['"]([^'"]+)['"]\s*class="next.*?page''',c)[0]
+            np = re.findall('''<a\\s*href=['"]([^'"]+)['"]\\s*class="next.*?page''',c)[0]
             nextpage = base_domain+np
             dirlst.append({'name': 'Next Page -->', 'url': nextpage, 'mode': 302, 'icon': icon, 'fanart': fanarts, 'description': 'View more tags.', 'folder': True})
         except: 
@@ -163,7 +174,7 @@ def getMonitoring():
                 combinedlists = list(zip(countlist,namelist,urllist,iconlist))
             else: 
                 try: 
-                    last_seen=re.compile("<dt>Last Broadcast:<\/dt><dd>(.+?)<\/dd>").findall(r)[0]
+                    last_seen=re.compile("<dt>Last Broadcast:<\\/dt><dd>(.+?)<\\/dd>").findall(r)[0]
                 except: last_seen = "Unknown"
                 namelist.append(name + '|SPLIT|' + last_seen)
                 urllist.append(url)
@@ -208,6 +219,7 @@ def searchUser():
         url = 'https://chaturbate.com/' + user
         iconimg = 'https://roomimg.stream.highwebmedia.com/ri/' + user + '.jpg'
         url += '|SPLIT|Chaturbate'
+        from resources.lib.modules import player  # was used but never imported
         player.resolve_url(url,user,iconimg)
     else:
         kodi.dialog.ok(kodi.get_name(), 'No username entered. Please try again.')
@@ -219,7 +231,7 @@ def followUser():
     user = kodi.get_keyboard('Enter Username')
     if user:
         user = user.replace(' ','_')
-        xbmc.executebuiltin("ActivateWindow(busydialog)")
+        pass  # Kodi 18+ refuses DialogBusy from add-ons
         
         conn = sqlite3.connect(chaturbatedb)
         conn.text_factory = str

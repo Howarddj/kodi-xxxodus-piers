@@ -79,8 +79,8 @@ def GitWindow(name):
     global closed_issues
     
     try:
-        open_issues = re.findall('\s+(\d+)\s+Open', name)[0]
-        closed_issues = re.findall('\s+(\d+)\s+Closed', name)[0]
+        open_issues = re.findall('\\s+(\\d+)\\s+Open', name)[0]
+        closed_issues = re.findall('\\s+(\\d+)\\s+Closed', name)[0]
 
         if int(open_issues) in range(11,20): open_issues = '10plus'
         elif int(open_issues) in range(21,30): open_issues = '20plus'

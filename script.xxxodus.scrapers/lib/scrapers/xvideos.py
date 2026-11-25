@@ -16,7 +16,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://www.xvideos.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 238
 content_mode = 239
@@ -60,7 +60,7 @@ def menu():
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': i[0], 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: buildDirectory(dirlst)    
     else:
@@ -98,7 +98,7 @@ def content(url,searched=False):
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': content_url, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': description, 'folder': False})
         except Exception as e:
-            log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+            log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
     
     if dirlst: buildDirectory(dirlst, stopend=True, isVideo = True, isDownloadable = True)
     else:
@@ -111,7 +111,7 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''href=['"]([^'"]+)"\s*class="no-page next'''
+            search_pattern = '''href=['"]([^'"]+)"\\s*class="no-page next'''
             parse = base_domain        
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
         except Exception as e: 

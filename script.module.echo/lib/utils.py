@@ -51,7 +51,7 @@ def make_list_item(label, meta, art=None, cast=None):
     listitem.setArt({'icon': art['thumb'], 'thumb': art['thumb']})
     listitem.setProperty('fanart_image', art['fanart'])
     listitem.setProperty('isPlayable', 'false')
-    listitem.addStreamInfo('video', {})
+    if not hasattr(listitem, 'getVideoInfoTag'): listitem.addStreamInfo('video', {})  # empty stream info; deprecated on Kodi 20+
     try: listitem.setArt(art)
     except AttributeError: pass
     try: listitem.setCast(cast)
@@ -206,7 +206,7 @@ def create_legal_filename(title, year):
     filename = title
     if year: filename += ' %s' % (year)
     filename = re.sub(r'(?!%s)[^\w\-_\.]', '.', filename)
-    filename = re.sub('\.+', '.', filename)
+    filename = re.sub('\\.+', '.', filename)
     xbmc.makeLegalFilename(filename)
     return filename
 

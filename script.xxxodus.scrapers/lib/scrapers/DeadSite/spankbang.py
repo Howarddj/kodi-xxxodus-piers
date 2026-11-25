@@ -17,7 +17,7 @@ dialog	= xbmcgui.Dialog()
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://spankbang.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36 Edg/91.0.864.59"
 headers = {'User-Agent': ua}
 type         = 'video'
@@ -109,7 +109,7 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''<li\s*class\=['"]next['"]\>\<a\s*href\=['"]([^'"]+)'''
+            search_pattern = '''<li\\s*class\\=['"]next['"]\\>\\<a\\s*href\\=['"]([^'"]+)'''
             parse = base_domain        
             helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
         except Exception as e: 

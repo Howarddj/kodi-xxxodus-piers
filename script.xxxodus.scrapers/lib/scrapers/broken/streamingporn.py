@@ -14,7 +14,7 @@ dialog = xbmcgui.Dialog()
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://streamingporn.xyz'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'movies'
 menu_mode    = 282
 content_mode = 283
@@ -88,6 +88,6 @@ def content(url,searched=False):
 	if searched: return str(len(r))
 
 	if not searched:
-		search_pattern = '''<link\s+rel="next"\s+href=['"]([^'"]+)['"]'''
+		search_pattern = '''<link\\s+rel="next"\\s+href=['"]([^'"]+)['"]'''
 		parse = base_domain
 		helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

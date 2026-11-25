@@ -8,12 +8,13 @@ import log_utils
 import kodi
 import client
 import dom_parser2, os,re,requests
+from bs4 import BeautifulSoup  # was used but never imported
 buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 dialog = xbmcgui.Dialog()
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://www.submityourflicks.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'scenes'
 menu_mode    = 313
 content_mode = 314
@@ -57,7 +58,7 @@ def menu():
 	#if searched: return str(len(r))
 
 	if not searched:
-		search_pattern = '''<a\s+href=['"]([^'"]+)['"].*?Next'''
+		search_pattern = '''<a\\s+href=['"]([^'"]+)['"].*?Next'''
 		parse = base_domain
 		helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
 
@@ -93,6 +94,6 @@ def content(url,searched=False):
 	#if searched: return str(len(r))
 
 	if not searched:
-		search_pattern = '''<a\s+href=['"]([^'"]+)['"].*?Next'''
+		search_pattern = '''<a\\s+href=['"]([^'"]+)['"].*?Next'''
 		parse = base_domain
 		helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

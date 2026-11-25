@@ -170,7 +170,7 @@ def play(url, name, iconimage=None, ref=None, site=None):
                 while xbmc.Player().isPlayingVideo():
                     try:
                         r = client.request(ref)
-                        subject = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; subject = unquote_plus(subject)
+                        subject = re.compile('default_subject:\\s\"([^,]+)",').findall(r)[0]; subject = unquote_plus(subject)
                         kodi.notify(msg=subject, duration=8500, sound=True, icon_path=iconimage)
                     except: pass
                     time.sleep(int(sleeper))

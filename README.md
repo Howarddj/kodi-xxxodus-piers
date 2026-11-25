@@ -11,15 +11,15 @@ A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, pa
 3. **Add-ons → Install from repository → XXX-O-DUS Piers Repository → Video add-ons → XXX-O-DUS**.
    Kodi installs all dependencies automatically.
 
-If you already installed the patched 99.00.028 zip, step 3 shows XXX-O-DUS 99.00.029 as an update.
+If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.030 as an update.
 
 ## What's in the repository
 
 | Add-on | Version | Source | Changes |
 |---|---|---|---|
-| `plugin.video.xxx-o-dus` | 99.00.029 | Stream Army 5.00.028 | Patched (see below) |
-| `script.module.echo` | 99.00.000 | Stream Army 5.00.000 | Patched |
-| `script.xxxodus.scrapers` | 99.00.020 | Stream Army 5.00.020 | Patched |
+| `plugin.video.xxx-o-dus` | 99.00.030 | Stream Army 5.00.028 | Patched (see below) |
+| `script.module.echo` | 99.00.001 | Stream Army 5.00.000 | Patched |
+| `script.xxxodus.scrapers` | 99.00.021 | Stream Army 5.00.020 | Patched |
 | `script.module.nemzzy` | 99.00.000 | Stream Army 12.00.000 | Patched |
 | `script.xxxodus.artwork` | 5.00.001 | Stream Army | Unchanged |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |

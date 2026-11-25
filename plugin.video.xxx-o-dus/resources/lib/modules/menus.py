@@ -57,7 +57,7 @@ def mainMenu():
          (kodi.giveColor('Welcome to XXX-O-DUS Version %s' % kodi.get_version() ,'blue',True),translatePath(os.path.join(kodi.addonfolder, 'resources/files/information.txt')),17,'icon','Original Code by EchoCoder, Please Report All issues to @Nemzzy668',False), \
          (kodi.giveColor('Official Version Now Maintained By [COLOR yellow]@Nemzzy668[/COLOR]','blue',True),translatePath(os.path.join(kodi.addonfolder, 'resources/files/information.txt')),17,'icon','Please Report any issues to @Nemzzy668 On Twitter',False), \
          ('[COLOR yellow]View Changelog[/COLOR]',translatePath(os.path.join(kodi.addonfolder, 'changelog.txt')),17,'changelog','View XXX-O-DUS Changelog.',False), \
-         ('[COLOR orange]Check XXX-O-DUS Health',None,46,'icon','Versions',True), \
+         ('[COLOR orange]Check XXX-O-DUS Health',None,46,'icon','Versions',False), \
          #('[COLOR magenta]Install CumWithMe ( New Addon )',None,50,'icon','Versions',False), \
          ('Search...',None,29,'search','Search XXX-O-DUS',True), \
          ('[COLOR pink]Live Cams',None,37,'webcams','Live Cams',True), \

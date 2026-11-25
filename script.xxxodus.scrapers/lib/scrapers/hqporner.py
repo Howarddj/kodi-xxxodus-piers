@@ -14,7 +14,7 @@ dialog	= xbmcgui.Dialog()
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'https://hqporner.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 303
 content_mode = 304
@@ -96,6 +96,6 @@ def content(url,searched=False):
 	if searched: return str(len(r))
 
 	if not searched:
-		search_pattern = '''<a\s*href=['"]([^'"]+)['"]\s*class=['"]button\s*mobile-pagi pagi-btn['"]>Next<\/a>'''
+		search_pattern = '''<a\\s*href=['"]([^'"]+)['"]\\s*class=['"]button\\s*mobile-pagi pagi-btn['"]>Next<\\/a>'''
 		parse = base_domain
 		helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

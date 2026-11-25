@@ -16,7 +16,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 
 filename     = os.path.basename(__file__).split('.')[0]
 base_domain  = 'http://www.xnxx.com'
-base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'video'
 menu_mode    = 204
 content_mode = 205
@@ -55,7 +55,7 @@ def menu():
 			fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
 			dirlst.append({'name': name, 'url': url2, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
 		except Exception as e:
-			log_utils.log('Error adding menu item %s in %s:: Error: %s' % (i[1].title(),base_name.title(),str(e)), log_utils.LOGERROR)
+			log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
 
 	if dirlst: buildDirectory(dirlst)    
 	else:
@@ -67,7 +67,7 @@ def content(url,searched=False):
 
     try:
         c = client.request(url)
-        r = dom_parser2.parse_dom(c, 'div', {'id': re.compile('video_\d+')})
+        r = dom_parser2.parse_dom(c, 'div', {'id': re.compile('video_\\d+')})
         r = [(dom_parser2.parse_dom(i, 'a', req=['href','title']),dom_parser2.parse_dom(i, 'img', req=['data-src'])) for i in r if i]
         r = [(urljoin(base_domain,i[0][0].attrs['href']),i[0][0].attrs['title'],i[1][0].attrs['data-src']) for i in r if i]
         if ( not r ) and ( not searched ):
@@ -88,7 +88,7 @@ def content(url,searched=False):
             else: name = kodi.sortX(i[1])
             if searched: description = 'Result provided by %s' % base_name.title()
             else: description = name
-            icon = re.sub('(\.THUMBNUM\.)','.1.',i[2])
+            icon = re.sub('(\\.THUMBNUM\\.)','.1.',i[2])
             content_url = i[0] + '|SPLIT|%s' % base_name
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
             dirlst.append({'name': name, 'url': content_url, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': description, 'folder': False})
@@ -104,7 +104,7 @@ def content(url,searched=False):
     if searched: return str(len(r))
     
     if not searched:
-        search_pattern = '''href=['"]([^'"]+)"\s*class="no-page next'''
+        search_pattern = '''href=['"]([^'"]+)"\\s*class="no-page next'''
         parse = base_domain
         
         helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)

@@ -1,0 +1,1865 @@
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/addon.xml b/script.module.echo/addon.xml
+--- a/script.module.echo/addon.xml	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/addon.xml	2026-11-25 01:40:03.376663395 +0000
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+-<addon id="script.module.echo" name="Echo Libraries" version="5.00.000" provider-name="Echo Coder">
++<addon id="script.module.echo" name="Echo Libraries" version="99.00.000" provider-name="Echo Coder">
+ 	<requires>
+ 		<!-- <import addon="xbmc.python" version="2.1.0" /> -->
+ 		<import addon="script.module.requests" />
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/CustomProgressDialog.py b/script.module.echo/lib/CustomProgressDialog.py
+--- a/script.module.echo/lib/CustomProgressDialog.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/CustomProgressDialog.py	2026-11-25 01:37:01.956401201 +0000
+@@ -25,8 +25,11 @@
+         
+     def create(self, heading, line1='', line2='', line3=''):
+         addon = xbmcaddon.Addon('script.module.tknorris.shared')
+-        path_setting = addon.getSetting('xml_folder').decode('utf-8')
+-        addon_path = addon.getAddonInfo('path').decode('utf-8')
++        path_setting = addon.getSetting('xml_folder')
++        addon_path = addon.getAddonInfo('path')
++        # Python 3 returns str, which has no .decode()
++        if isinstance(path_setting, bytes): path_setting = path_setting.decode('utf-8')
++        if isinstance(addon_path, bytes): addon_path = addon_path.decode('utf-8')
+         # if a path is set, try to use it and fallback to the default if it fails
+         if path_setting:
+             try: self.dialog = ProgressDialog.Window(DIALOG_XML, path_setting)
+@@ -42,7 +45,7 @@
+     
+     def update(self, percent, line1='', line2='', line3=''):
+         if self.dialog is not None:
+-            self.dialog.setProgress(percent)
++            self.dialog.setProgress(int(percent))
+             if line1: self.dialog.setLine1(line1)
+             if line2: self.dialog.setLine2(line2)
+             if line3: self.dialog.setLine3(line3)
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/cache.py b/script.module.echo/lib/cache.py
+--- a/script.module.echo/lib/cache.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/cache.py	2026-11-25 01:37:01.954892381 +0000
+@@ -85,8 +85,13 @@
+     except Exception as e:
+         logger.log('Failure during cache write: %s' % (e), log_utils.LOGWARNING)
+ 
++def _md5(s):
++    # Python 3: hashlib needs bytes (same digest as Python 2 for the same text)
++    if not isinstance(s, bytes): s = s.encode('utf-8')
++    return hashlib.md5(s).hexdigest()
++
+ def _get_filename(name, args, kwargs):
+-    arg_hash = hashlib.md5(name).hexdigest() + hashlib.md5(str(args)).hexdigest() + hashlib.md5(str(kwargs)).hexdigest()
++    arg_hash = _md5(name) + _md5(str(args)) + _md5(str(kwargs))
+     return arg_hash
+ 
+ def cache_method(cache_limit):
+@@ -224,9 +229,14 @@
+     return conn.cursor()
+ 
+ 
++def _profile_path():
++    # xbmc.translatePath was removed in Kodi 20, and str has no .decode() on Python 3
++    if PY2: return xbmc.translatePath(addonInfo('profile')).decode('utf-8')
++    return xbmcvfs.translatePath(addonInfo('profile'))
++
+ def _get_connection():
+-    xbmcvfs.mkdir(xbmc.translatePath(addonInfo('profile')).decode('utf-8'))
+-    conn = db.connect(os.path.join(xbmc.translatePath(addonInfo('profile')).decode('utf-8'), 'cache.db'))
++    xbmcvfs.mkdir(_profile_path())
++    conn = db.connect(os.path.join(_profile_path(), 'cache.db'))
+     conn.row_factory = _dict_factory
+     return conn
+ 
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/client.py b/script.module.echo/lib/client.py
+--- a/script.module.echo/lib/client.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/client.py	2026-11-25 01:37:01.955460727 +0000
+@@ -34,6 +34,10 @@
+     import urllib.request as urllib2
+     from io import StringIO
+ import re,sys,urllib,gzip,time,random,base64
++if PY2: _unescape = HTMLParser().unescape
++else:
++    import html as _html
++    _unescape = _html.unescape  # HTMLParser().unescape was removed in Python 3.9
+ 
+ import cache
+ import workers
+@@ -289,7 +293,7 @@
+     return result
+ 
+ def parseDOM(html, name='', attrs=None, ret=False):
+-    if attrs: attrs = dict((key, re.compile(value + ('$' if value else ''))) for key, value in attrs.iteritems())
++    if attrs: attrs = dict((key, re.compile(value + ('$' if value else ''))) for key, value in attrs.items())
+     results = dom_parser.parse_dom(html, name, attrs, ret)
+     if ret:
+         results = [result.attrs[ret.lower()] for result in results]
+@@ -301,7 +305,7 @@
+ def replaceHTMLCodes(txt):
+     
+     txt = re.sub("(&#[0-9]+)([^;^0-9]+)", "\\1;\\2", txt, flags=re.I)
+-    txt = HTMLParser().unescape(txt)
++    txt = _unescape(txt)
+     txt = txt.replace("&quot;", "\"")
+     txt = txt.replace("&amp;", "&")
+     txt = txt.replace("&Quot;", "\"")
+@@ -312,7 +316,7 @@
+ 
+ def randomagent():
+     BR_VERS = [
+-        ['%s.0' % i for i in xrange(18, 50)],
++        ['%s.0' % i for i in range(18, 50)],
+         ['37.0.2062.103', '37.0.2062.120', '37.0.2062.124', '38.0.2125.101', '38.0.2125.104', '38.0.2125.111', '39.0.2171.71', '39.0.2171.95', '39.0.2171.99',
+          '40.0.2214.93', '40.0.2214.111',
+          '40.0.2214.115', '42.0.2311.90', '42.0.2311.135', '42.0.2311.152', '43.0.2357.81', '43.0.2357.124', '44.0.2403.155', '44.0.2403.157', '45.0.2454.101',
+@@ -391,7 +395,7 @@
+ 
+             if 'type="hidden" name="pass"' in result:
+                 passval = re.findall('name="pass" value="(.*?)"', result)[0]
+-                query = '%s/cdn-cgi/l/chk_jschl?pass=%s&jschl_vc=%s&jschl_answer=%s' % (netloc, urllib.quote_plus(passval), jschl, answer)
++                query = '%s/cdn-cgi/l/chk_jschl?pass=%s&jschl_vc=%s&jschl_answer=%s' % (netloc, quote_plus(passval), jschl, answer)
+                 time.sleep(6)
+ 
+             cookies = cookielib.LWPCookieJar()
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/dom_parser.py b/script.module.echo/lib/dom_parser.py
+--- a/script.module.echo/lib/dom_parser.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/dom_parser.py	2026-11-25 01:37:01.955652463 +0000
+@@ -19,7 +19,7 @@
+ import dom_parser2
+ 
+ def parse_dom(html, name='', attrs=None, ret=False):
+-    if attrs: attrs = dict((key, re.compile(value + ('$' if value else ''))) for key, value in attrs.iteritems())
++    if attrs: attrs = dict((key, re.compile(value + ('$' if value else ''))) for key, value in attrs.items())
+     results = dom_parser2.parse_dom(html, name, attrs, ret)
+     if ret:
+         results = [result.attrs[ret.lower()] for result in results]
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/downloader.py b/script.module.echo/lib/downloader.py
+--- a/script.module.echo/lib/downloader.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/downloader.py	2026-11-25 01:37:23.505188834 +0000
+@@ -14,56 +14,119 @@
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ """
++# Ported to Python 3 (Kodi 19+ / Kodi 22): `from urllib import FancyURLopener`
++# was Python 2 only, FancyURLopener was removed entirely in Python 3.14, and
++# DialogProgress.create()/update() now take (heading, message)/(percent, message).
+ import xbmcgui
+-import urllib
+ import time
+-from urllib import FancyURLopener
+ import sys
++import os
++import tempfile
+ 
+-class MyOpener(FancyURLopener):
+-	version = 'python-requests/2.9.1'
++PY2 = sys.version_info[0] == 2
++_UA = 'python-requests/2.9.1'
++
++if PY2:
++    from urllib import FancyURLopener
++
++    class MyOpener(FancyURLopener):
++        version = _UA
++else:
++    import urllib.request
++
++    class MyOpener(object):
++        """Same open()/retrieve() interface as FancyURLopener."""
++        version = _UA
++        blocksize = 1024 * 8
++
++        def open(self, url, data=None):
++            return urllib.request.urlopen(urllib.request.Request(url, data=data, headers={'User-Agent': self.version}))
++
++        def retrieve(self, url, filename=None, reporthook=None, data=None):
++            with self.open(url, data) as fp:
++                headers = fp.info()
++                if filename:
++                    out = open(filename, 'wb')
++                else:
++                    fd, filename = tempfile.mkstemp()
++                    out = os.fdopen(fd, 'wb')
++                with out:
++                    try:
++                        size = int(headers.get('Content-Length', -1))
++                    except (TypeError, ValueError):
++                        size = -1
++                    blocknum = 0
++                    if reporthook:
++                        reporthook(blocknum, self.blocksize, size)
++                    while True:
++                        block = fp.read(self.blocksize)
++                        if not block:
++                            break
++                        out.write(block)
++                        blocknum += 1
++                        if reporthook:
++                            reporthook(blocknum, self.blocksize, size)
++            return filename, headers
+ 
+ myopener = MyOpener()
+ urlretrieve = MyOpener().retrieve
+ urlopen = MyOpener().open
+-AddonTitle     = "[COLOR red]XXX-O-DUS[/COLOR]"
++AddonTitle = "[COLOR red]XXX-O-DUS[/COLOR]"
++
++
++def _dp_create(dp, heading, message):
++    if PY2: dp.create(heading, message, ' ', ' ')
++    else: dp.create(heading, message)
++
+ 
+-def download(url, dest, dp = None):
++def _dp_update(dp, percent, *lines):
++    percent = int(percent)
++    if PY2: dp.update(percent, *lines)
++    else:
++        msg = '\n'.join(l for l in lines if l and l.strip())
++        if msg: dp.update(percent, msg)
++        else: dp.update(percent)
++
++
++def download(url, dest, dp=None):
+     if not dp:
+         dp = xbmcgui.DialogProgress()
+-        dp.create(AddonTitle,"Download In Progress",' ', ' ')
++        _dp_create(dp, AddonTitle, "Download In Progress")
+     dp.update(0)
+-    start_time=time.time()
+-    urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(dest,nb, bs, fs, dp, start_time))
++    start_time = time.time()
++    urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(dest, nb, bs, fs, dp, start_time))
++
++
++def auto(url, dest, dp=None):
++    dp = xbmcgui.DialogProgress()
++    start_time = time.time()
++    urlretrieve(url, dest, lambda nb, bs, fs: _pbhookauto(nb, bs, fs, dp, start_time))
+ 
+-def auto(url, dest, dp = None):
+-	dp = xbmcgui.DialogProgress()
+-	start_time=time.time()
+-	urlretrieve(url, dest, lambda nb, bs, fs: _pbhookauto(nb, bs, fs, dp, start_time))
+ 
+ def _pbhookauto(numblocks, blocksize, filesize, url, dp):
+-	none = 0
++    none = 0
++
+ 
+-def _pbhook(dest,numblocks, blocksize, filesize, dp, start_time):
+-        try: 
+-            percent = min(numblocks * blocksize * 100 / filesize, 100) 
+-            currently_downloaded = float(numblocks) * blocksize / (1024 * 1024) 
+-            kbps_speed = numblocks * blocksize / (time.time() - start_time) 
+-            if kbps_speed > 0: 
+-                eta = (filesize - numblocks * blocksize) / kbps_speed 
+-            else: 
+-                eta = 0 
+-            kbps_speed = kbps_speed / 1024 
+-            mbps_speed = kbps_speed / 1024 
+-            total = float(filesize) / (1024 * 1024) 
+-            mbs = '[COLOR pink]%.02f MB[/COLOR] of [B]%.02f MB[/B]' % (currently_downloaded, total)
+-            e = '[COLOR white][B]Speed: [/B][/COLOR][COLOR pink]%.02f Mb/s ' % mbps_speed  + '[/COLOR]'
+-            e += '[COLOR white][B]ETA: [/B][/COLOR][COLOR pink]%02d:%02d' % divmod(eta, 60)  + '[/COLOR]'
+-            dp.update(percent, mbs, e)
+-        except: 
+-            percent = 100 
+-            dp.update(percent) 
+-        if dp.iscanceled():
+-            dialog = xbmcgui.Dialog()
+-            dp.close()
+-            quit()
+\ No newline at end of file
++def _pbhook(dest, numblocks, blocksize, filesize, dp, start_time):
++    try:
++        percent = min(numblocks * blocksize * 100 / filesize, 100)
++        currently_downloaded = float(numblocks) * blocksize / (1024 * 1024)
++        kbps_speed = numblocks * blocksize / (time.time() - start_time)
++        if kbps_speed > 0:
++            eta = (filesize - numblocks * blocksize) / kbps_speed
++        else:
++            eta = 0
++        kbps_speed = kbps_speed / 1024
++        mbps_speed = kbps_speed / 1024
++        total = float(filesize) / (1024 * 1024)
++        mbs = '[COLOR pink]%.02f MB[/COLOR] of [B]%.02f MB[/B]' % (currently_downloaded, total)
++        e = '[COLOR white][B]Speed: [/B][/COLOR][COLOR pink]%.02f Mb/s ' % mbps_speed + '[/COLOR]'
++        e += '[COLOR white][B]ETA: [/B][/COLOR][COLOR pink]%02d:%02d' % divmod(eta, 60) + '[/COLOR]'
++        _dp_update(dp, percent, mbs, e)
++    except:
++        percent = 100
++        dp.update(percent)
++    if dp.iscanceled():
++        dialog = xbmcgui.Dialog()
++        dp.close()
++        sys.exit()
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/extract.py b/script.module.echo/lib/extract.py
+--- a/script.module.echo/lib/extract.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/extract.py	2026-11-25 01:37:11.021188092 +0000
+@@ -14,49 +14,46 @@
+     You should have received a copy of the GNU General Public License
+     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ """
++# Ported to Python 3 (Kodi 19+): `except X, e` / print statements were Python 2
++# only, and DialogProgress.update() now takes (percent, message).
++from __future__ import print_function
+ import zipfile
+ 
+-def auto(_in, _out):
+ 
++def auto(_in, _out):
+     return allNoProgress(_in, _out)
+-	
++
++
+ def all(_in, _out, dp=None):
+     if dp:
+         return allWithProgress(_in, _out, dp)
+-
+     return allNoProgress(_in, _out)
+-        
++
+ 
+ def allNoProgress(_in, _out):
+     try:
+         zin = zipfile.ZipFile(_in, 'r')
+         zin.extractall(_out)
+-    
+-    except Exception, e:
+-        print str(e)
++    except Exception as e:
++        print(str(e))
+         return False
+-
+     return True
+ 
+ 
+ def allWithProgress(_in, _out, dp):
+-    zin    = zipfile.ZipFile(_in,  'r')
++    zin = zipfile.ZipFile(_in, 'r')
+     nFiles = float(len(zin.infolist()))
+-    count  = 0
+-
++    count = 0
+     try:
+         for item in zin.infolist():
+             count += 1
+             update = count / nFiles * 100
+-            dp.update(int(update),'','',str(item.filename))
++            dp.update(int(update), str(item.filename))
+             try:
+                 zin.extract(item, _out)
+-            except Exception, e:
+-                print str(e)
+-
+-    
+-    except Exception, e:
+-        print str(e)
++            except Exception as e:
++                print(str(e))
++    except Exception as e:
++        print(str(e))
+         return False
+-
+-    return True
+\ No newline at end of file
++    return True
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/githubissues.py b/script.module.echo/lib/githubissues.py
+--- a/script.module.echo/lib/githubissues.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/githubissues.py	2026-11-25 01:37:32.691969927 +0000
+@@ -4,11 +4,21 @@
+ from a repository that username has access to. Supports Github API v3.
+ """
+ import csv
++import sys
+ import xbmc
++import xbmcvfs
+ import os
+ import requests
+ import kodi
+ 
++# Python 3 / Kodi 20+: xbmc.translatePath is gone, csv wants a text file, and
++# str + bytes concatenation fails, so only encode on Python 2.
++PY2 = sys.version_info[0] == 2
++translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
++def _t(s):
++    s = s or ''
++    return s.encode('utf-8') if PY2 else s
++
+ def run(REPO, STATE):
+     ISSUES_FOR_REPO_URL = 'http://api.github.com/repos/%s/issues?state=%s' % (REPO, STATE)
+ 
+@@ -22,13 +32,13 @@
+                 labels = issue['labels']
+                 for label in labels:
+                     #if label['name'] == "Client Requested":
+-                    csvout.writerow(['\n<item>\n<id>'+str(issue['number'])+'</id>\n<username>'+username+'</username>\n<label>'+label['name']+'</label>\n<title>'+issue['title'].encode('utf-8')+'</title>\n<body>'+issue['body'].encode('utf-8')+'</body>\n<created>'+issue['created_at']+'</created>\n</item>\n'])
++                    csvout.writerow(['\n<item>\n<id>'+str(issue['number'])+'</id>\n<username>'+username+'</username>\n<label>'+label['name']+'</label>\n<title>'+_t(issue['title'])+'</title>\n<body>'+_t(issue['body'])+'</body>\n<created>'+issue['created_at']+'</created>\n</item>\n'])
+             else:
+-                csvout.writerow(['\n<item>\n<id>'+str(issue['number'])+'</id>\n<username>'+username+'</username>\n<label>No Label</label>\n<title>'+issue['title'].encode('utf-8')+'</title>\n<body>'+issue['body'].encode('utf-8')+'</body>\n<created>'+issue['created_at']+'</created>\n</item>\n'])
++                csvout.writerow(['\n<item>\n<id>'+str(issue['number'])+'</id>\n<username>'+username+'</username>\n<label>No Label</label>\n<title>'+_t(issue['title'])+'</title>\n<body>'+_t(issue['body'])+'</body>\n<created>'+issue['created_at']+'</created>\n</item>\n'])
+ 
+     r = requests.get(ISSUES_FOR_REPO_URL, verify=False)
+-    csvfile = xbmc.translatePath(os.path.join(kodi.datafolder, '%s-issues-%s.csv' % (kodi.get_id(),STATE)))
+-    csvout = csv.writer(open(csvfile, 'wb'))
++    csvfile = translatePath(os.path.join(kodi.datafolder, '%s-issues-%s.csv' % (kodi.get_id(),STATE)))
++    csvout = csv.writer(open(csvfile, 'wb') if PY2 else open(csvfile, 'w', newline='', encoding='utf-8'))
+     write_issues(r)
+ 
+     #more pages? examine the 'link' header returned
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/kodi.py b/script.module.echo/lib/kodi.py
+--- a/script.module.echo/lib/kodi.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/kodi.py	2026-11-25 01:37:01.956082234 +0000
+@@ -17,6 +17,7 @@
+ """
+ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+ from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl
++from six.moves.urllib.parse import urlencode, quote, unquote
+ from six import PY2
+ import urllib
+ import sys
+@@ -45,6 +46,23 @@
+ handle = int(sys.argv[1])
+ execute = xbmc.executebuiltin
+ 
++def _pd_lines(*lines):
++    return '\n'.join(l for l in lines if l and l.strip())
++
++def _pd_create(pd, heading, line1='', line2='', line3=''):
++    # Kodi 19+ DialogProgress.create() takes (heading, message) only
++    if PY2 or isinstance(pd, CustomProgressDialog.ProgressDialog): pd.create(heading, line1, line2, line3)
++    else: pd.create(heading, _pd_lines(line1, line2, line3))
++
++def _pd_update(pd, percent, line1='', line2='', line3=''):
++    # Kodi 19+ DialogProgress.update() takes (percent, message) and percent must be an int
++    percent = int(percent)
++    if PY2 or isinstance(pd, CustomProgressDialog.ProgressDialog): pd.update(percent, line1, line2, line3)
++    else:
++        msg = _pd_lines(line1, line2, line3)
++        if msg: pd.update(percent, msg)
++        else: pd.update(percent)
++
+ def busy():
+     return execute('ActivateWindow(busydialog)')
+ 
+@@ -132,12 +150,12 @@
+         
+ def get_plugin_url(queries):
+     try:
+-        query = urllib.urlencode(queries)
++        query = urlencode(queries)
+     except UnicodeEncodeError:
+         for k in queries:
+-            if isinstance(queries[k], unicode):
++            if isinstance(queries[k], type(u'')):
+                 queries[k] = queries[k].encode('utf-8')
+-        query = urllib.urlencode(queries)
++        query = urlencode(queries)
+ 
+     return sys.argv[0] + '?' + query
+ 
+@@ -149,7 +167,8 @@
+     
+ def create_item(queries, label, thumb='', fanart='', is_folder=None, is_playable=None, total_items=0, menu_items=None, replace_menu=False):
+     if not thumb: thumb = os.path.join(get_path(), 'icon.png')
+-    list_item = xbmcgui.ListItem(label, iconImage=thumb, thumbnailImage=thumb)
++    list_item = xbmcgui.ListItem(label)  # iconImage/thumbnailImage kwargs were removed in Kodi 19
++    list_item.setArt({'icon': thumb, 'thumb': thumb})
+     add_item(queries, list_item, fanart, is_folder, is_playable, total_items, menu_items, replace_menu)
+ 
+ def add_item(queries, list_item, fanart='', is_folder=None, is_playable=None, total_items=0, menu_items=None, replace_menu=False):
+@@ -264,8 +283,8 @@
+ 
+ def ulib(string, enc=False):
+     try:
+-        if enc: string = urllib.quote(string)
+-        else: string = urllib.unquote(string)
++        if enc: string = quote(string)
++        else: string = unquote(string)
+         return string
+     except: return string
+ 
+@@ -422,7 +441,7 @@
+                 pd = CustomProgressDialog.ProgressDialog()
+             else:
+                 pd = xbmcgui.DialogProgress()
+-            pd.create(self.heading, line1, line2, line3)
++            _pd_create(pd, self.heading, line1, line2, line3)
+         return pd
+         
+     def __enter__(self):
+@@ -445,9 +464,9 @@
+         if self.pd is not None:
+             if self.background:
+                 msg = line1 + line2 + line3
+-                self.pd.update(percent, self.heading, msg)
++                self.pd.update(int(percent), self.heading, msg)
+             else:
+-                self.pd.update(percent, line1, line2, line3)
++                _pd_update(self.pd, percent, line1, line2, line3)
+ 
+ class CountdownDialog(object):
+     __INTERVALS = 5
+@@ -464,7 +483,7 @@
+             else:
+                 pd = xbmcgui.DialogProgress()
+             if not self.line3: line3 = 'Expires in: %s seconds' % (countdown)
+-            pd.create(self.heading, line1, line2, line3)
++            _pd_create(pd, self.heading, line1, line2, line3)
+             pd.update(100)
+             self.pd = pd
+ 
+@@ -487,11 +506,11 @@
+         interval = self.interval
+         while time_left > 0:
+             for _ in range(CountdownDialog.__INTERVALS):
+-                sleep(interval * 1000 / CountdownDialog.__INTERVALS)
++                sleep(int(interval * 1000 / CountdownDialog.__INTERVALS))
+                 if self.is_canceled(): return
+                 time_left = expires - int(time.time() - start)
+                 if time_left < 0: time_left = 0
+-                progress = time_left * 100 / expires
++                progress = int(time_left * 100 / expires)
+                 line3 = 'Expires in: %s seconds' % (time_left) if not self.line3 else ''
+                 self.update(progress, line3=line3)
+                 
+@@ -507,4 +526,4 @@
+         
+     def update(self, percent, line1='', line2='', line3=''):
+         if self.pd is not None:
+-            self.pd.update(percent, line1, line2, line3)
++            _pd_update(self.pd, percent, line1, line2, line3)
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/plugintools.py b/script.module.echo/lib/plugintools.py
+--- a/script.module.echo/lib/plugintools.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/plugintools.py	2026-11-25 01:37:54.673776595 +0000
+@@ -36,8 +36,22 @@
+ # 1.0.8
+ # - Added selector
+ #---------------------------------------------------------------------------
+-import xbmc,xbmcplugin,xbmcaddon,xbmcgui,urllib,urllib2,re,sys,os,time,socket,gzip
+-from StringIO import StringIO
++import xbmc,xbmcplugin,xbmcaddon,xbmcgui,xbmcvfs,re,sys,os,time,socket,gzip
++# Python 2/3 compatibility shim (Kodi 19+ runs Python 3 only; this module was Python 2 only)
++PY2 = sys.version_info[0] == 2
++if PY2:
++    import urllib, urllib2
++    from StringIO import StringIO
++    _translatePath = xbmc.translatePath
++    _clock = time.clock
++else:
++    import types as _types, urllib.parse as _uparse, urllib.request as urllib2, urllib.response as _uresp
++    from io import StringIO
++    urllib = _types.SimpleNamespace(quote_plus=_uparse.quote_plus, unquote_plus=_uparse.unquote_plus, quote=_uparse.quote,
++                                    unquote=_uparse.unquote, urlencode=_uparse.urlencode, urlretrieve=urllib2.urlretrieve,
++                                    addinfourl=_uresp.addinfourl)
++    _translatePath = xbmcvfs.translatePath   # xbmc.translatePath was removed in Kodi 20
++    _clock = time.perf_counter               # time.clock was removed in Python 3.8
+ module_log_enabled=False; http_debug_log_enabled=False; LIST="list"; THUMBNAIL="thumbnail"; MOVIES="movies"; TV_SHOWS="tvshows"; SEASONS="seasons"; EPISODES="episodes"; OTHER="other"; 
+ # Suggested view codes for each type from different skins (initial list thanks to xbmcswift2 library)
+ ALL_VIEW_CODES={
+@@ -135,7 +149,7 @@
+     # -------------------------------------------------
+     # Cookies instaladas, lanza la petición
+     # -------------------------------------------------
+-    inicio=time.clock() # Contador
++    inicio=_clock() # Contador
+     txheaders={} # Diccionario para las cabeceras
+     if post is None: _log("read_body_and_headers GET request") # Construye el request
+     else: _log("read_body_and_headers POST request")
+@@ -167,7 +181,7 @@
+         response = urllib2.urlopen(req)
+     '''
+     # Tiempo transcurrido
+-    fin=time.clock(); _log("read_body_and_headers Downloaded in %d seconds " % (fin-inicio+1)); _log("read_body_and_headers body="+data); return data,returnheaders
++    fin=_clock(); _log("read_body_and_headers Downloaded in %d seconds " % (fin-inicio+1)); _log("read_body_and_headers body="+data); return data,returnheaders
+ 
+ class NoRedirectHandler(urllib2.HTTPRedirectHandler):
+     def http_error_302(self,req,fp,code,msg,headers): infourl=urllib.addinfourl(fp,headers,req.get_full_url()); infourl.status=code; infourl.code=code; return infourl
+@@ -180,7 +194,7 @@
+     return result
+ def add_item(action="",title="",plot="",url="",thumbnail="",fanart="",show="",episode="",extra="",page="",info_labels=None,isPlayable=False,folder=True):
+     _log("add_item action=["+action+"] title=["+title+"] url=["+url+"] thumbnail=["+thumbnail+"] fanart=["+fanart+"] show=["+show+"] episode=["+episode+"] extra=["+extra+"] page=["+page+"] isPlayable=["+str(isPlayable)+"] folder=["+str(folder)+"]")
+-    listitem=xbmcgui.ListItem(title,iconImage="DefaultVideo.png",thumbnailImage=thumbnail)
++    listitem=xbmcgui.ListItem(title); listitem.setArt({'icon':"DefaultVideo.png",'thumb':thumbnail})  # kwargs removed in Kodi 19
+     if info_labels is None: info_labels={"Title":title,"FileName":title,"Plot":plot}
+     listitem.setInfo( "video", info_labels )
+     if fanart!="": listitem.setProperty('fanart_image',fanart); xbmcplugin.setPluginFanart(int(sys.argv[1]),fanart)
+@@ -193,8 +207,9 @@
+     return xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, listitem)
+ def direct_play(url,title=""):
+     _log("direct_play ["+url+"]")
+-    try: xlistitem=xbmcgui.ListItem(title,iconImage="DefaultVideo.png",path=url)
+-    except: xlistitem=xbmcgui.ListItem(title,iconImage="DefaultVideo.png",)
++    try: xlistitem=xbmcgui.ListItem(title,path=url)
++    except: xlistitem=xbmcgui.ListItem(title)
++    xlistitem.setArt({'icon':"DefaultVideo.png"})  # iconImage kwarg removed in Kodi 19
+     xlistitem.setInfo("video",{"Title":title}); playlist=xbmc.PlayList(xbmc.PLAYLIST_VIDEO); playlist.clear(); playlist.add(url,xlistitem); player_type=xbmc.PLAYER_CORE_AUTO; xbmcPlayer=xbmc.Player(player_type); xbmcPlayer.play(playlist)
+ def show_picture(url):
+     local_folder=os.path.join(get_data_path(),"images")
+@@ -204,10 +219,10 @@
+     local_file=os.path.join(local_folder,"temp.jpg")
+     urllib.urlretrieve(url,local_file) # Download picture
+     xbmc.executebuiltin("SlideShow("+local_folder+")") # Show picture
+-def get_temp_path(): _log("get_temp_path"); dev = xbmc.translatePath("special://temp/"); _log("get_temp_path ->'"+str(dev)+"'"); return dev
+-def get_runtime_path(): _log("get_runtime_path"); dev=xbmc.translatePath(__settings__.getAddonInfo('Path')); _log("get_runtime_path ->'"+str(dev)+"'"); return dev
++def get_temp_path(): _log("get_temp_path"); dev = _translatePath("special://temp/"); _log("get_temp_path ->'"+str(dev)+"'"); return dev
++def get_runtime_path(): _log("get_runtime_path"); dev=_translatePath(__settings__.getAddonInfo('Path')); _log("get_runtime_path ->'"+str(dev)+"'"); return dev
+ def get_data_path():
+-    _log("get_data_path"); dev=xbmc.translatePath(__settings__.getAddonInfo('Profile'))
++    _log("get_data_path"); dev=_translatePath(__settings__.getAddonInfo('Profile'))
+     if not os.path.exists(dev): os.makedirs(dev) # Parche para XBMC4XBOX
+     _log("get_data_path ->'"+str(dev)+"'"); return dev
+ def get_setting(name): _log("get_setting name='"+name+"'"); dev=__settings__.getSetting(name); _log("get_setting ->'"+str(dev)+"'"); return dev
+@@ -216,8 +231,9 @@
+ def get_localized_string(code):
+     _log("get_localized_string code="+str(code))
+     dev=__language__(code)
+-    try: dev=dev.encode("utf-8")
+-    except: pass
++    if PY2:
++        try: dev=dev.encode("utf-8")
++        except: pass
+     _log("get_localized_string ->'"+dev+"'"); return dev
+ def keyboard_input(default_text="",title="",hidden=False):
+     _log("keyboard_input default_text='"+default_text+"'")
+@@ -229,12 +245,12 @@
+     _log("message text1='"+text1+"', text2='"+text2+"', text3='"+text3+"'")
+     if text3=="": xbmcgui.Dialog().ok(text1,text2)
+     elif text2=="": xbmcgui.Dialog().ok("",text1)
+-    else: xbmcgui.Dialog().ok(text1,text2,text3)
++    else: xbmcgui.Dialog().ok(text1,text2+"\n"+text3)  # Kodi 19+: ok(heading, message)
+ def message_yes_no(text1,text2="",text3=""):
+     _log("message_yes_no text1='"+text1+"', text2='"+text2+"', text3='"+text3+"'")
+     if text3=="": yes_pressed=xbmcgui.Dialog().yesno(text1,text2)
+     elif text2=="": yes_pressed=xbmcgui.Dialog().yesno("",text1)
+-    else: yes_pressed=xbmcgui.Dialog().yesno(text1,text2,text3)
++    else: yes_pressed=xbmcgui.Dialog().yesno(text1,text2+"\n"+text3)  # Kodi 19+: 3rd arg is nolabel
+     return yes_pressed
+ def selector(option_list,title="Select one"):
+     _log("selector title='"+title+"', options="+repr(option_list))
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/url_dispatcher.py b/script.module.echo/lib/url_dispatcher.py
+--- a/script.module.echo/lib/url_dispatcher.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/url_dispatcher.py	2026-11-25 01:37:01.956970784 +0000
+@@ -99,7 +99,7 @@
+             args = self.args_registry[mode]
+             kwargs = self.kwargs_registry[mode]
+             line = 'Mode %s Registered - %s args: %s kwargs: %s' %(str(mode), str(value), str(args), str(kwargs))
+-            xbmc.log(line, xbmc.LOGNOTICE) 
++            xbmc.log(line, xbmc.LOGINFO)  # LOGNOTICE was removed in Kodi 19 
+     
+     # since all params are passed as strings, do any conversions necessary to get good types (e.g. boolean)
+     def __coerce(self, arg):
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.echo/lib/utils.py b/script.module.echo/lib/utils.py
+--- a/script.module.echo/lib/utils.py	2025-05-26 14:42:52.000000000 +0100
++++ b/script.module.echo/lib/utils.py	2026-11-25 01:37:01.956692533 +0000
+@@ -26,6 +26,7 @@
+ if PY2: import urllib2
+ else: import urllib.request as urllib2
+ import urllib
++from six.moves.urllib.parse import unquote, urlsplit
+ import os
+ import kodi
+ import log_utils
+@@ -46,7 +47,8 @@
+ def make_list_item(label, meta, art=None, cast=None):
+     if art is None: art = {'thumb': '', 'fanart': ''}
+     if cast is None: cast = []
+-    listitem = xbmcgui.ListItem(label, iconImage=art['thumb'], thumbnailImage=art['thumb'])
++    listitem = xbmcgui.ListItem(label)  # iconImage/thumbnailImage kwargs were removed in Kodi 19
++    listitem.setArt({'icon': art['thumb'], 'thumb': art['thumb']})
+     listitem.setProperty('fanart_image', art['fanart'])
+     listitem.setProperty('isPlayable', 'false')
+     listitem.addStreamInfo('video', {})
+@@ -109,12 +111,13 @@
+     return _byteify(json.loads(json_text, object_hook=_byteify), ignore_dicts=True)
+ 
+ def _byteify(data, ignore_dicts=False):
++    if not PY2: return data  # Python 3 strings are already text
+     if isinstance(data, unicode):
+         return data.encode('utf-8')
+     if isinstance(data, list):
+         return [_byteify(item, ignore_dicts=True) for item in data]
+     if isinstance(data, dict) and not ignore_dicts:
+-        return dict([(_byteify(key, ignore_dicts=True), _byteify(value, ignore_dicts=True)) for key, value in data.iteritems()])
++        return dict([(_byteify(key, ignore_dicts=True), _byteify(value, ignore_dicts=True)) for key, value in data.items()])
+     return data
+ 
+ def download_media(url, path, file_name, translations, progress=None):
+@@ -209,7 +212,7 @@
+ 
+ def url2name(url):
+     url = url.split('|')[0]
+-    return os.path.basename(urllib.unquote(urlparse.urlsplit(url)[2]))
++    return os.path.basename(unquote(urlsplit(url)[2]))
+ 
+ def auth_trakt(Trakt_API, translations):
+     i18n = translations.i18n
+diff -ruN --strip-trailing-cr -x __pycache__ script.xxxodus.scrapers/addon.xml b/script.xxxodus.scrapers/addon.xml
+--- a/script.xxxodus.scrapers/addon.xml	2025-11-15 16:07:00.000000000 +0000
++++ b/script.xxxodus.scrapers/addon.xml	2026-11-25 01:40:03.381198338 +0000
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+-<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="5.00.020" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
++<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="99.00.020" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
+ 	<requires>
+ 		<!-- <import addon="xbmc.python" version="2.24.0" /> -->
+ 		<import addon="script.module.requests" />
+diff -ruN --strip-trailing-cr -x __pycache__ script.xxxodus.scrapers/lib/scrapers/__init__.py b/script.xxxodus.scrapers/lib/scrapers/__init__.py
+--- a/script.xxxodus.scrapers/lib/scrapers/__init__.py	2024-11-08 15:08:38.000000000 +0000
++++ b/script.xxxodus.scrapers/lib/scrapers/__init__.py	2026-11-25 01:38:12.351527280 +0000
+@@ -20,7 +20,13 @@
+                     continue
+ 
+                 try:
+-                    module = loader.find_module(module_name).load_module(module_name)
++                    if hasattr(loader, 'find_spec'):  # Python 3: find_module()/load_module() were removed in 3.12
++                        import importlib.util
++                        spec = loader.find_spec(module_name)
++                        module = importlib.util.module_from_spec(spec)
++                        spec.loader.exec_module(module)
++                    else:
++                        module = loader.find_module(module_name).load_module(module_name)
+                     sourceDict.append((module_name, module.source()))
+                 except Exception as e:
+                     log_utils.log('Could not load "%s": %s' % (module_name, e), log_utils.LOGDEBUG)
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.nemzzy/addon.xml b/script.module.nemzzy/addon.xml
+--- a/script.module.nemzzy/addon.xml	2026-07-13 09:14:04.000000000 +0100
++++ b/script.module.nemzzy/addon.xml	2026-11-25 01:40:03.385377666 +0000
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+-<addon id="script.module.nemzzy" name="Nemzzy Utils" version="12.00.000" provider-name="@Nemzzy668">
++<addon id="script.module.nemzzy" name="Nemzzy Utils" version="99.00.000" provider-name="@Nemzzy668">
+ 	<requires>
+ 		<import addon="script.module.requests" />
+ 	</requires>
+diff -ruN --strip-trailing-cr -x __pycache__ script.module.nemzzy/neupop.py b/script.module.nemzzy/neupop.py
+--- a/script.module.nemzzy/neupop.py	2026-07-13 09:12:28.000000000 +0100
++++ b/script.module.nemzzy/neupop.py	2026-11-25 01:38:12.352530660 +0000
+@@ -1,5 +1,5 @@
+ # -*- coding: utf-8 -*-
+-"""Nemzzy startup service: addon update checks + one-time AdMaven leftover cleanup."""
++"""Nemzzy startup service: one-time AdMaven leftover cleanup (update checks and ping removed)."""
+ 
+ import os
+ import re
+@@ -13,9 +13,6 @@
+ import xbmcvfs
+ 
+ pattern = r'''<addon\sid=['"](plugin.*?)['"]'''
+-githubxml = 'https://raw.githubusercontent.com/nemesis668/repository.streamarmy18-19/main/addons.xml'
+-serviceapi = 'http://streamarmy.co.uk/servicenew.php?system=%s&addons=%s'
+-serviceapi2 = 'http://streamarmy.co.uk/servicelatest.php?system=%s&addons=%s&version=%s'
+ releasedaddons = []
+ app_version = "11.01.000"
+ addon_id = 'script.module.nemzzy'
+@@ -240,74 +237,8 @@
+ 
+ def nemzzy():
+     cleanup_admaven_leftovers()
+-
+-    Version = platform_check()
+-    installed = 0
+-    getcurrent = ""
+-    try:
+-        getcurrent = requests.get(githubxml, timeout=10).text
+-        findaddons = re.findall(pattern, getcurrent)
+-        for addonn in findaddons:
+-            releasedaddons.append(addonn)
+-    except Exception as e:
+-        xbmc.log("nemzzy: failed to fetch addons.xml: %s" % str(e), xbmc.LOGWARNING)
+-
+-    for checkadd in releasedaddons:
+-        try:
+-            addonpath = xbmcvfs.translatePath(
+-                os.path.join('special://home/addons/%s' % checkadd, 'addon.xml')
+-            )
+-            if not os.path.exists(addonpath):
+-                continue
+-            installed += 1
+-            with open(addonpath, 'r', encoding='utf-8') as reader:
+-                content = reader.read()
+-            patternv = r'''<addon\sid=['"]%s['"].*?version=['"](.*?)['"]''' % re.escape(checkadd)
+-            ver_matches = re.findall(patternv, content, flags=re.DOTALL)
+-            if not ver_matches:
+-                continue
+-            getver = ver_matches[0]
+-            newpat = (
+-                r'''<addon\sid=['"]%s['"].*?version=['"]%s['"]'''
+-                % (re.escape(checkadd), re.escape(getver))
+-            )
+-            try:
+-                re.findall(newpat, getcurrent, flags=re.DOTALL)[0]
+-            except IndexError:
+-                try:
+-                    if 'nemesisaio' in checkadd:
+-                        addonicon = xbmcvfs.translatePath(
+-                            os.path.join('special://home/addons/%s' % checkadd, 'icon.gif')
+-                        )
+-                    else:
+-                        addonicon = xbmcvfs.translatePath(
+-                            os.path.join('special://home/addons/%s' % checkadd, 'icon.png')
+-                        )
+-                    xbmc.log(msg='ADDON OUT OF DATE ::: %s' % checkadd, level=xbmc.LOGINFO)
+-                    dialog.notification(
+-                        "Nemzzy Service",
+-                        "Addon %s Needs Updating" % checkadd.replace('plugin.video.', '').title(),
+-                        addonicon,
+-                        5000,
+-                    )
+-                    xbmc.sleep(2000)
+-                except Exception:
+-                    pass
+-        except Exception as e:
+-            xbmc.log("nemzzy: error checking addon %s: %s" % (checkadd, str(e)), xbmc.LOGWARNING)
+-
+-    try:
+-        registerpin = selfAddon.getSetting('pincheck') or 'true'
+-    except Exception:
+-        registerpin = 'true'
+-    try:
+-        if str(registerpin).lower() == 'false':
+-            requests.get(serviceapi % (Version, installed), timeout=10)
+-            selfAddon.setSetting('pincheck', 'True')
+-        else:
+-            requests.get(serviceapi2 % (Version, installed, app_version), timeout=10)
+-    except Exception as e:
+-        xbmc.log("nemzzy: ping failed: %s" % str(e), xbmc.LOGWARNING)
++    # Removed: per-start version check against the Stream Army repo index ("Addon X Needs
++    # Updating" notifications) and the pincheck registration / usage ping to streamarmy.co.uk.
+ 
+ 
+ if __name__ == "__main__":
+--- a/plugin.video.xxx-o-dus/addon.xml
++++ b/plugin.video.xxx-o-dus/addon.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+ <addon id="plugin.video.xxx-o-dus" 
+ 	     name="XXX-O-DUS" 
+-	     version="5.00.028" 
++	     version="99.00.028"
+ 	     provider-name="Originally By : Echo Coder :: Revived By @Nemzzy668">
+   <requires>
+     <!-- <import addon="xbmc.python" version="2.24.0"/> -->
+--- a/plugin.video.xxx-o-dus/default.py
++++ b/plugin.video.xxx-o-dus/default.py
+@@ -1,12 +1,3 @@
+-try:
+-    if __obfuscator__ != 'Hyperion' or __authors__ != ('billythegoat356', 'BlueRed') or __github__ != 'https://github.com/billythegoat356/Hyperion' or (__discord__ != 'https://discord.gg/plague') or (__license__ != 'EPL-2.0') or (__code__ != 'print("Hello world!")'):
+-        int('skid')
+-except:
+-    input('Roses are red\nViolets are blue\nYou are a skid\nNobody likes you')
+-    __import__('sys').exit()
+-vars()['S2SS2SSS2S2SS2S2222222SS2'] = ''.join
+-from builtins import all, exec, len, open, quit, exit
+-exec('')
+ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+ from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl
+ from six import PY2
+@@ -26,9 +17,14 @@
+ from resources.lib.modules import parental
+ from resources.lib.modules import firstStart
+ from resources.lib.modules import addon_able
++
++# De-obfuscated from the Hyperion-packed original (5.00.028).
++# Removed: the pinsystem.co.uk PIN requirement (CheckParent), the unused
++# Python 2-only get_pin() helper, and the start-up prompt that downloaded and
++# installed repository.StreamArmy from streamarmy.co.uk when it was missing.
++
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ parentalCheck = parental.parentalCheck
+-dialog = xbmcgui.Dialog()
+ addon_id = 'plugin.video.xxx-o-dus'
+ AddonTitle = '[COLOR pink][B]XXX-O-DUS[/B][/COLOR]'
+ dialog = xbmcgui.Dialog()
+@@ -36,86 +32,7 @@
+ settingsxml_default = translatePath(os.path.join('special://home/addons/' + addon_id, 'resources/settings_default.xml'))
+ firstrun = translatePath(os.path.join('special://home/userdata/addon_data/' + addon_id, 'firstrun.txt'))
+ setupfolders = translatePath(os.path.join('special://home/userdata/addon_data/plugin.video.xxx-o-dus/downloads/'))
+-REPO = translatePath(os.path.join('special://home/addons', 'repository.StreamArmy'))
+-if not os.path.exists(REPO):
+-    choice = xbmcgui.Dialog().yesno(AddonTitle, 'This Add-on requires [COLOR yellow]The StreamArmy Repo[/COLOR] to be installed to work correctly, and get official updates would you like to install it now?', yeslabel='[B][COLOR white]YES[/COLOR][/B]', nolabel='[B][COLOR grey]NO[/COLOR][/B]')
+-    if choice == 1:
+-        path = translatePath(os.path.join('special://home/addons', 'packages'))
+-        if not os.path.exists(path):
+-            os.makedirs(path)
+-        url = 'http://streamarmy.co.uk/repo/repository.StreamArmy-15.0.004.zip'
+-        dp = xbmcgui.DialogProgress()
+-        if PY2:
+-            dp.create(AddonTitle, '', '', 'Downloading [COLOR yellow]The StreamArmy Repo[/COLOR]')
+-        else:
+-            dp.create(AddonTitle, 'Downloading [COLOR yellow]The StreamArmy Repo[/COLOR]')
+-        lib = os.path.join(path, 'repo.zip')
+-        try:
+-            os.remove(lib)
+-        except:
+-            pass
+-        tools.download(url, lib, dp)
+-        addonfolder = translatePath(os.path.join('special://home', 'addons'))
+-        time.sleep(2)
+-        if PY2:
+-            dp.update(0, '', 'Installing [COLOR yellow]The StreamArmy Repo[/COLOR] Please Wait', '')
+-        else:
+-            dp.update(0, 'Installing [COLOR yellow]The StreamArmy Repo[/COLOR] Please Wait')
+-        extract.all(lib, addonfolder, dp)
+-        addon_able.set_enabled('repository.StreamArmy')
+-        xbmc.executebuiltin('XBMC.UpdateLocalAddons()')
+-        xbmc.executebuiltin('XBMC.UpdateAddonRepos()')
+-    else:
+-        quit()
+-
+-def get_pin(url):
+-    try:
+-        req = urllib2.Request(url)
+-        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.73 Safari/537.36')
+-        response = urllib2.urlopen(req, timeout=5)
+-        link = response.read()
+-        response.close()
+-        link = link.replace('\n', '').replace('\r', '').replace('\t', '').replace('<fanart></fanart>', '<fanart>x</fanart>').replace('<thumbnail></thumbnail>', '<thumbnail>x</thumbnail>').replace('<utube>', '<link>https://www.youtube.com/watch?v=').replace('</utube>', '</link>')
+-        return link
+-    except:
+-        quit()
+-
+-def CheckParent():
+-    pin = kodi.get_setting('pin')
+-    if pin == '':
+-        pin = 'EXPIRED'
+-    if pin == 'EXPIRED':
+-        kodi.set_setting('pinused', 'False')
+-        dialog.ok(AddonTitle, '[COLOR aqua]Please visit [COLOR pink]https://pinsystem.co.uk[COLOR aqua] to generate an pin code for [COLOR pink]XXX-O-DUS[COLOR aqua] Addon then enter it after clicking ok[/COLOR]')
+-        string = ''
+-        keyboard = xbmc.Keyboard(string, '[COLOR red]Please Enter Pin Generated From Website[/COLOR]')
+-        keyboard.doModal()
+-        if keyboard.isConfirmed():
+-            string = keyboard.getText()
+-            if len(string) > 1:
+-                term = string.title().replace(' ', '')
+-                kodi.set_setting('pin', term)
+-                CheckParent()
+-            else:
+-                quit()
+-        else:
+-            quit()
+-    if not 'EXPIRED' in pin:
+-        pinurlcheck = 'https://pinsystem.co.uk/service.php?code=%s&plugin=RnVja1lvdSE' % pin
+-        link = requests.get(pinurlcheck).text
+-        if len(link) <= 5 or 'Pin Expired' in link:
+-            kodi.set_setting('pin', 'EXPIRED')
+-            CheckParent()
+-        else:
+-            registerpin = kodi.get_setting('pinused')
+-            if registerpin == 'False':
+-                try:
+-                    requests.get('https://pinsystem.co.uk/checker.php?code=99999&plugin=XXXODUS').content
+-                    kodi.set_setting('pinused', 'True')
+-                except:
+-                    pass
+-            else:
+-                pass
++
+ 
+ def main(argv=None):
+     if sys.argv:
+@@ -125,8 +42,9 @@
+     utils.url_dispatcher.dispatch(mode, queries)
+     if kodi.get_setting('dev_debug') == 'true':
+         utils.url_dispatcher.showmodes()
++
++
+ if __name__ == '__main__':
+     firstStart.run()
+-    CheckParent()
+     parentalCheck()
+-    sys.exit(main())
+\ No newline at end of file
++    sys.exit(main())
+--- a/plugin.video.xxx-o-dus/service.py
++++ b/plugin.video.xxx-o-dus/service.py
+@@ -1,7 +1,8 @@
+ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+-from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl
++from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl, unquote_plus
+ from six import PY2
+ import  re, os, time, urllib
++import requests  # was used below but never imported
+ import sqlite3
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ 
+@@ -11,7 +12,7 @@
+     databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.xxx-o-dus', 'databases'))
+     chaturbatedb = translatePath(os.path.join(databases, 'chaturbate.db'))
+ 
+-    xbmc.log('Starting XXX-O-DUS Service', xbmc.LOGNOTICE)
++    xbmc.log('Starting XXX-O-DUS Service', xbmc.LOGINFO)
+ 
+     if ( not os.path.exists(databases)): os.makedirs(databases)
+     conn = sqlite3.connect(chaturbatedb)
+@@ -29,19 +30,20 @@
+     chat_on_off  = get_setting("chaturbate_start")
+ 
+     if ( chat_on_off ) != 'true': 
+-        xbmc.log('Exiting XXX-O-DUS Service', xbmc.LOGNOTICE)
++        xbmc.log('Exiting XXX-O-DUS Service', xbmc.LOGINFO)
+         quit()
+ 
+     time.sleep(10)
+ 
+     lst = []
+ 
+-    xbmc.log('Starting XXX-O-DUS Chaturbate Monitoring', xbmc.LOGNOTICE)
++    xbmc.log('Starting XXX-O-DUS Chaturbate Monitoring', xbmc.LOGINFO)
+ 
+-    while not xbmc.abortRequested:
++    monitor = xbmc.Monitor()  # xbmc.abortRequested was removed in Kodi 19
++    while not monitor.abortRequested():
+ 
+         if not i:
+-            #xbmc.log('Getting Chaturbate Monitored Performers from XXX-O-DUS', xbmc.LOGNOTICE)
++            #xbmc.log('Getting Chaturbate Monitored Performers from XXX-O-DUS', xbmc.LOGINFO)
+             conn = sqlite3.connect(chaturbatedb)
+             conn.text_factory = str
+             c = conn.cursor()
+@@ -52,7 +54,7 @@
+                 quit()
+             for (title, link, iconimage) in e:
+                 if (not title in str(lst) ):
+-                    #xbmc.log('XXX-O-DUS: Checking %s' % title, xbmc.LOGNOTICE)
++                    #xbmc.log('XXX-O-DUS: Checking %s' % title, xbmc.LOGINFO)
+                     try:
+                         r = requests.get(link).text
+                         # req = urllib2.Request(link)
+@@ -60,8 +62,8 @@
+                         # r=response.read()
+                         # response.close()
+                         if '.m3u8' in r:
+-                            content = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; content = urllib.unquote_plus(content)
+-                            try: content=content.encode('utf-8')
++                            content = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; content = unquote_plus(content)
++                            try: content=content.encode('utf-8') if PY2 else content
+                             except: content=content
+                             xbmcgui.Dialog().notification(title + ' online!',content, iconimage, 7500, True)
+                             lst.append(title)
+@@ -72,7 +74,7 @@
+ 
+         if i >= 2879:
+             lst = []
+-            xbmc.log('XXX-O-DUS: Reseting Checked List', xbmc.LOGNOTICE)
++            xbmc.log('XXX-O-DUS: Reseting Checked List', xbmc.LOGINFO)
+         i = (i + 1) % 60
+         j = (j + 1) % 2880
+ except: pass
+\ No newline at end of file
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/menus.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/menus.py
+@@ -41,7 +41,6 @@
+ addon_id     = 'plugin.video.xxx-o-dus'
+ scraper_id   = 'script.xxxodus.scrapers'
+ artwork_id   = 'script.xxxodus.artwork'
+-GitUrl       = 'https://raw.githubusercontent.com/nemesis668/repository.streamarmy18-19/main/addons.xml'
+ buildDirectory = utils.buildDir
+ specific_icon       = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', '%s/icon.png'))
+ specific_fanart     = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', '%s/fanart.jpg'))
+@@ -52,7 +51,6 @@
+ def mainMenu():
+ 
+     art = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', 'main/%s.png'))
+-    CheckParent()
+     dirlst = []
+     c = []
+     c += [
+@@ -350,79 +348,17 @@
+ 	
+ @utils.url_dispatcher.register('46')
+ def versioncheck():
+-	checkxxx    = translatePath(os.path.join('special://home/addons/' + addon_id, 'addon.xml'))
+-	checkscraper    = translatePath(os.path.join('special://home/addons/' + scraper_id, 'addon.xml'))
+-	checkartwork    = translatePath(os.path.join('special://home/addons/' + artwork_id, 'addon.xml'))
+-	a = open(checkxxx, 'r').read()
+-	b = re.findall('<addon\s+id=.+?version="(.*?)"',a,flags=re.DOTALL)[0]
+-	
+-	c = open(checkscraper, 'r').read()
+-	d = re.findall('<addon\s+id=.+?version="(.*?)"',c,flags=re.DOTALL)[0]
+-	
+-	e = open(checkartwork, 'r').read()
+-	f = re.findall('<addon\s+id=.+?version="(.*?)"',e,flags=re.DOTALL)[0]
+-	
+-	currentversions = requests.get(GitUrl).text
+-	checkcurrentaddon = re.findall('<addon\s+id="plugin.video.xxx-o-dus".+?version="(.*?)"',currentversions,flags=re.DOTALL)[0]
+-	checkcurrentscraper = re.findall('<addon\s+id="script.xxxodus.scrapers".+?version="(.*?)"',currentversions,flags=re.DOTALL)[0]
+-	checkcurrentartwork = re.findall('<addon\s+id="script.xxxodus.artwork".+?version="(.*?)"',currentversions,flags=re.DOTALL)[0]
+-	
+-	messagestring = ''
+-	if b == checkcurrentaddon:
+-		string = ('[COLOR lime]XXX-O-DUS Current : %s | Your Version : %s | All Up To Date[/COLOR]\n' % (checkcurrentaddon,b))
+-	elif b < checkcurrentaddon:
+-		string = ('[COLOR orange]XXX-O-DUS Current : %s | Your Version : %s | Addon Out Of Date[/COLOR]\n' % (checkcurrentaddon,b))
+-	elif b > checkcurrentaddon:
+-		string = ('[COLOR red][B]XXX-O-DUS Current : %s | Your Version : %s | Malicous Version Detected - Recommended You Un-install[/B][/COLOR]\n' % (checkcurrentaddon,b))
+-	
+-	if d == checkcurrentscraper:
+-		string = string + ('[COLOR lime]Scraper MODULE Current : %s | Your Version : %s | All Up To Date[/COLOR]\n' % (checkcurrentscraper,d))
+-	elif d < checkcurrentscraper:
+-		string = string + ('[COLOR orange]Scraper MODULE : %s | Your Version : %s | Module Out Of Date[/COLOR]\n' % (checkcurrentscraper,d))
+-	elif d > checkcurrentscraper:
+-		string = string + ('[COLOR red][B]Scraper MODULE : %s | Your Version : %s | Malicous Version Detected - Recommended You Un-install[/B][/COLOR]\n' % (checkcurrentscraper,d))
+-		
+-	if f == checkcurrentartwork:
+-		string = string + ('[COLOR lime]Artwork MODULE Current : %s | Your Version : %s | All Up To Date[/COLOR]\n' % (checkcurrentartwork,f))
+-	elif f < checkcurrentartwork:
+-		string = string + ('[COLOR orange]Artwork MODULE : %s | Your Version : %s | Module Out Of Date[/COLOR]\n' % (checkcurrentartwork,f))
+-	elif f > checkcurrentartwork:
+-		string = string + ('[COLOR red][B]Artwork MODULE : %s | Your Version : %s | Malicous Version Detected - Recommended You Un-install[/B][/COLOR]\n' % (checkcurrentartwork,f))
+-		
+-	showText(AddonTitle,string)
+-
+-def CheckParent():
+-    pin = kodi.get_setting('pin')
+-    if pin == '': pin = 'EXPIRED'
+-    if pin == 'EXPIRED':
+-        kodi.set_setting('pinused','False')
+-        dialog.ok(AddonTitle,"[COLOR aqua]Please visit [COLOR pink]https://pinsystem.co.uk[COLOR aqua] to generate an pin code for [COLOR pink]XXX-O-DUS[COLOR aqua] Addon then enter it after clicking ok[/COLOR]")
+-        string =''
+-        keyboard = xbmc.Keyboard(string, '[COLOR red]Please Enter Pin Generated From Website[/COLOR]')
+-        keyboard.doModal()
+-        if keyboard.isConfirmed():
+-            string = keyboard.getText()
+-            if len(string)>1:
+-                term = string.title().replace(' ','')
+-                kodi.set_setting('pin',term)
+-                CheckParent()
+-            else: quit()
+-        else:
+-            quit()
+-    if not 'EXPIRED' in pin:
+-        pinurlcheck = ('https://pinsystem.co.uk/service.php?code=%s&plugin=RnVja1lvdSE' % pin)
+-        link = requests.get(pinurlcheck).text
+-        if len(link) <= 5 or 'Pin Expired' in link:
+-            kodi.set_setting('pin','EXPIRED')
+-            CheckParent()
+-        else:
+-            registerpin = kodi.get_setting('pinused')
+-            if registerpin == 'False':
+-                try:
+-                    requests.get('https://pinsystem.co.uk/checker.php?code=99999&plugin=XXXODUS').content
+-                    kodi.set_setting('pinused','True')
+-                except: pass
+-            else: pass
++	# Local-only: shows installed versions. The original fetched the Stream Army
++	# repo index and flagged any non-matching version as "Malicious".
++	string = ''
++	for label, aid in (('XXX-O-DUS', addon_id), ('Scraper MODULE', scraper_id), ('Artwork MODULE', artwork_id)):
++		try:
++			x = open(translatePath(os.path.join('special://home/addons/' + aid, 'addon.xml')), 'r').read()
++			v = re.findall('<addon\\s+id=.+?version="(.*?)"', x, flags=re.DOTALL)[0]
++			string += '[COLOR lime]%s | Installed Version : %s[/COLOR]\n' % (label, v)
++		except Exception:
++			string += '[COLOR orange]%s | Not installed[/COLOR]\n' % label
++	showText(AddonTitle, string)
+ 
+ def showText(heading, text):
+ 
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/lover.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/lover.py
+@@ -1,26 +1,11 @@
+-from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+-from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl
+-from six import PY2
++# De-obfuscated replacement for the original lover.py (5.00.028).
++#
++# The original checkupdates() downloaded the Stream Army repo index on every
++# scraper call, compared it with the installed version, and quit the add-on with
++# "None Supported Version Of XXX-O-DUS" if they differed. It is now a no-op so a
++# patched or different version keeps working. The scrapers still call it, so the
++# function itself is kept.
++
+ 
+-import os,re,sys,requests
+-import base64
+-import time
+-from resources.lib.modules import downloaderrepo as tools
+-from resources.lib.modules import extract
+-from resources.lib.modules import addon_able
+-translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+-addon_id = 'plugin.video.xxx-o-dus'
+-checkfile = translatePath(os.path.join('special://home/addons/' + addon_id, 'addon.xml'))
+-addonPath = os.path.join(os.path.join(translatePath('special://home'), 'addons'),'plugin.video.xxx-o-dus')
+-AddonTitle = '[COLOR pink][B]XXX-O-DUS[/B][/COLOR]'
+-dialog = xbmcgui.Dialog()
+-REPO = translatePath(os.path.join('special://home/addons','repository.StreamArmy'))
+ def checkupdates():
+-    s = open(checkfile, 'r').read()
+-    a = re.findall('<addon\s+id=.+?version="(.*?)"',s,flags=re.DOTALL)[0]
+-    b = requests.get('https://raw.githubusercontent.com/nemesis668/repository.streamarmy18-19/main/addons.xml').text
+-    c = re.findall('<addon\s+id="plugin.video.xxx-o-dus".+?version="(.*?)"',b,flags=re.DOTALL)[0]
+-    if a == c: pass
+-    else:
+-        dialog.ok("[COLOR red][B]WARNING[/B][/COLOR]","[COLOR yellow]None Supported Version Of XXX-O-DUS Or Addon Out Of Date, Use Official Version From Stream Army Repo, You May Just Need To Update Your Addon[/COLOR]")
+-        quit()
+\ No newline at end of file
++    return
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py
+@@ -1,5 +1,5 @@
+ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+-from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl, urljoin
++from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl, urljoin, unquote_plus
+ from six import PY2
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ import os
+@@ -52,7 +52,9 @@
+         pass
+     conn.close()
+ else:
+-    class MyOpener(urllib.request.FancyURLopener):
++    # FancyURLopener was removed in Python 3.14 (Kodi 22); use a compatible replacement.
++    from resources.lib.modules.py3opener import Opener as _Opener
++    class MyOpener(_Opener):
+         version = 'python-requests/2.9.1'
+ 
+     myopener = MyOpener()
+@@ -93,7 +95,7 @@
+                 try: os.remove(os.path.join(download_folder, file))
+                 except: pass
+             if file.endswith(extension):
+-                name = urllib.unquote_plus(file)
++                name = unquote_plus(file)
+                 lst += [
+                         (kodi.giveColor(str(name),'white'),os.path.join(download_folder, file),803,None,True), \
+                        ]
+@@ -175,7 +177,7 @@
+     if '] -' in name: name = name.split('] -')[1]
+     if downloadableLink:
+         dest = getDest()
+-        dest = os.path.join(dest, '%s.mp4' % urllib.quote_plus(name))
++        dest = os.path.join(dest, '%s.mp4' % quote_plus(name))
+         download(url,name,iconimage,dest)
+     else:
+         u = None
+@@ -209,7 +211,7 @@
+                 quit()
+         if u: 
+             dest = getDest()
+-            dest = os.path.join(dest, '%s.tmp_mp4' % urllib.quote_plus(name))
++            dest = os.path.join(dest, '%s.tmp_mp4' % quote_plus(name))
+             download(u,name,iconimage,dest)
+         else:
+             xbmc.executebuiltin("Dialog.Close(busydialog)")
+@@ -229,12 +231,21 @@
+         quit()
+     return download_folder
+     
++def _dp_update(dp, percent, *lines):
++    # Kodi 19+: DialogProgress.update(percent:int, message) - no line2/line3, no floats
++    percent = int(percent)
++    if PY2: return dp.update(percent, *lines)
++    msg = '\n'.join(l for l in lines if l and l.strip())
++    if msg: dp.update(percent, msg)
++    else: dp.update(percent)
++
+ def download(url, name, icon, dest, dp = None):
+     xbmc.executebuiltin("Dialog.Close(busydialog)")
+     if '|' in url: url = url.split('|')[0]
+     if not dp: 
+         dp = kodi.dp
+-        dp.create(kodi.get_name(),"Downloading: %s" % name,' ', ' ')
++        if PY2: dp.create(kodi.get_name(),"Downloading: %s" % name,' ', ' ')
++        else: dp.create(kodi.get_name(),"Downloading: %s" % name)  # Kodi 19+: (heading, message)
+     dp.update(0)
+     start_time=time.time()
+     log_utils.log('Attempting to download :: %s' % url, log_utils.LOGNOTICE)
+@@ -268,7 +279,7 @@
+         mbs = '[COLOR dodgerblue]%.02f MB[/COLOR] of [B]%.02f MB[/B]' % (currently_downloaded, total)
+         e = '[COLOR white][B]Speed: [/B][/COLOR][COLOR dodgerblue]%.02f Mb/s ' % mbps_speed  + '[/COLOR]'
+         e += '[COLOR white][B]ETA: [/B][/COLOR][COLOR dodgerblue]%02d:%02d' % divmod(eta, 60)  + '[/COLOR]'
+-        dp.update(percent,'', mbs, e)
++        _dp_update(dp, percent, '', mbs, e)
+     except:
+         dp.close()
+         kodi.notify(msg='Error Downloading. Exiting...')
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/downloaderrepo.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/downloaderrepo.py
+@@ -33,7 +33,9 @@
+     urlopen = MyOpener().open
+     AddonTitle="[COLOR ghostwhite]XXXODUS[/COLOR] [COLOR lightsteelblue]Configure[/COLOR]"
+ else:
+-    class MyOpener(urllib.request.FancyURLopener):
++    # FancyURLopener was removed in Python 3.14 (Kodi 22); use a compatible replacement.
++    from resources.lib.modules.py3opener import Opener as _Opener
++    class MyOpener(_Opener):
+         version = 'TheWizardIsHere'
+ 
+     myopener = MyOpener()
+@@ -41,10 +43,19 @@
+     urlopen = MyOpener().open
+     AddonTitle="[COLOR ghostwhite]XXXODUS[/COLOR] [COLOR lightsteelblue]Configure[/COLOR]"
+ 
++def _dp_update(dp, percent, *lines):
++    # Kodi 19+: DialogProgress.update(percent:int, message) - no line2/line3, no floats
++    percent = int(percent)
++    if PY2: return dp.update(percent, *lines)
++    msg = '\n'.join(l for l in lines if l and l.strip())
++    if msg: dp.update(percent, msg)
++    else: dp.update(percent)
++
+ def download(url, dest, dp = None):
+     if not dp:
+         dp = xbmcgui.DialogProgress()
+-        dp.create(' ',"Download In Progress",' ', ' ')
++        if PY2: dp.create(' ',"Download In Progress",' ', ' ')
++        else: dp.create(' ',"Download In Progress")  # Kodi 19+: (heading, message)
+     dp.update(0)
+     start_time=time.time()
+     urlretrieve(url, dest, lambda nb, bs, fs: _pbhook(nb, bs, fs, dp, start_time))
+@@ -72,7 +83,7 @@
+             mbs = '[COLOR lightskyblue]%.02f MB[/COLOR] of [B]%.02f MB[/B]' % (currently_downloaded, total)
+             e = '[COLOR white][B]Speed: [/B][/COLOR][COLOR lightskyblue]%.02f Mb/s ' % mbps_speed  + '[/COLOR]'
+             e += '[COLOR white][B]ETA: [/B][/COLOR][COLOR lightskyblue]%02d:%02d' % divmod(eta, 60)  + '[/COLOR]'
+-            dp.update(percent, mbs, e)
++            _dp_update(dp, percent, mbs, e)
+         except: 
+             percent = 100 
+             dp.update(percent) 
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/py3opener.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/py3opener.py
+@@ -0,0 +1,58 @@
++# -*- coding: utf-8 -*-
++"""
++Drop-in replacement for urllib.request.FancyURLopener.
++
++Python 3.14 (bundled with Kodi 22 "Piers") removed URLopener and
++FancyURLopener from urllib.request. The add-on subclassed FancyURLopener at
++import time, so on Kodi 22 it crashed with
++    AttributeError: module 'urllib.request' has no attribute 'FancyURLopener'
++before any menu was drawn.
++
++This class keeps the two methods the add-on uses, open() and retrieve(),
++including the reporthook(blocknum, blocksize, totalsize) progress callback,
++and works on every Python 3 version.
++"""
++import os
++import tempfile
++import urllib.request
++
++
++class Opener(object):
++    version = 'Python-urllib'
++    blocksize = 1024 * 8
++
++    def __init__(self, user_agent=None):
++        if user_agent:
++            self.version = user_agent
++
++    def _request(self, url, data=None):
++        return urllib.request.Request(url, data=data, headers={'User-Agent': self.version})
++
++    def open(self, url, data=None):
++        return urllib.request.urlopen(self._request(url, data))
++
++    def retrieve(self, url, filename=None, reporthook=None, data=None):
++        with self.open(url, data) as fp:
++            headers = fp.info()
++            if filename:
++                out = open(filename, 'wb')
++            else:
++                fd, filename = tempfile.mkstemp()
++                out = os.fdopen(fd, 'wb')
++            with out:
++                try:
++                    size = int(headers.get('Content-Length', -1))
++                except (TypeError, ValueError):
++                    size = -1
++                blocknum = 0
++                if reporthook:
++                    reporthook(blocknum, self.blocksize, size)
++                while True:
++                    block = fp.read(self.blocksize)
++                    if not block:
++                        break
++                    out.write(block)
++                    blocknum += 1
++                    if reporthook:
++                        reporthook(blocknum, self.blocksize, size)
++        return filename, headers
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/parental.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/parental.py
+@@ -5,6 +5,11 @@
+ import sqlite3
+ import requests
+ from six import PY2
++
++def _sha256(s):
++    # Python 3: hashlib needs bytes. Same digest as the Python 2 version, so existing passwords still work.
++    if not isinstance(s, bytes): s = s.encode('utf-8')
++    return hashlib.sha256(s).hexdigest()
+ dialog              = xbmcgui.Dialog()
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ from resources.lib.modules import utils
+@@ -57,7 +62,7 @@
+         if ( not input ):
+             sys.exit(0)
+ 
+-        pass_one = hashlib.sha256(input).hexdigest()
++        pass_one = _sha256(input)
+ 
+         if password != pass_one:
+             kodi.dialog.ok(kodi.get_name(),"Sorry, the password you entered was incorrect.")
+@@ -65,7 +70,7 @@
+         else:
+             delEntry(password)
+             addEntry(password, now)
+-            kodi.dialog.ok(kodi.get_name(),'Login successful!','You now have a %s minute session before you will be asked for the password again.' % str(session_time))
++            kodi.dialog.ok(kodi.get_name(),'Login successful!\nYou now have a %s minute session before you will be asked for the password again.' % str(session_time))
+     return
+ 
+ @utils.url_dispatcher.register('5')
+@@ -118,7 +123,7 @@
+     pass_two = input
+ 
+     if pass_one == pass_two:
+-        writeme = hashlib.sha256(pass_one).hexdigest()
++        writeme = _sha256(pass_one)
+         addEntry(writeme,None)
+         kodi.dialog.ok(kodi.get_name(),'Parental control has been enabled.')
+         xbmc.executebuiltin("Container.Refresh")    
+@@ -133,7 +138,7 @@
+     if ( not input ):
+         kodi.dialog.ok(kodi.get_name(),"Sorry, no password was entered.")
+         sys.exit(0)
+-    pass_one = hashlib.sha256(input).hexdigest()
++    pass_one = _sha256(input)
+ 
+     conn = sqlite3.connect(parentaldb)
+     conn.text_factory = str
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/player.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/player.py
+@@ -1,5 +1,5 @@
+ from kodi_six import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs
+-from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl, urljoin
++from six.moves.urllib.parse import parse_qs, quote_plus, urlparse, parse_qsl, urljoin, unquote_plus
+ from six import PY2
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ import os,re,time
+@@ -154,7 +154,8 @@
+                     elif choice == 0: pass
+                     else: quit()
+ 
+-            liz = xbmcgui.ListItem(name, iconImage=iconimage, thumbnailImage=iconimage)
++            liz = xbmcgui.ListItem(name)  # iconImage/thumbnailImage kwargs were removed in Kodi 19
++            liz.setArt({'icon': iconimage, 'thumb': iconimage})
+             xbmc.executebuiltin("Dialog.Close(busydialog)")
+             xbmc.Player().play(url, liz, False)
+             
+@@ -169,7 +170,7 @@
+                 while xbmc.Player().isPlayingVideo():
+                     try:
+                         r = client.request(ref)
+-                        subject = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; subject = urllib.unquote_plus(subject)
++                        subject = re.compile('default_subject:\s\"([^,]+)",').findall(r)[0]; subject = unquote_plus(subject)
+                         kodi.notify(msg=subject, duration=8500, sound=True, icon_path=iconimage)
+                     except: pass
+                     time.sleep(int(sleeper))
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+@@ -393,5 +393,5 @@
+         except:
+             kodi.dialog.ok(kodi.get_name(), "[COLOR white]There was an error deleting deleting the data directory.[/COLOR]")
+             quit()
+-        kodi.dialog.ok(kodi.get_name(), "[COLOR white]XXX-O-DUS has been reset to the factory state.[/COLOR]","[COLOR white]Press OK to continue.[/COLOR]")
++        kodi.dialog.ok(kodi.get_name(), "[COLOR white]XXX-O-DUS has been reset to the factory state.[/COLOR]\n[COLOR white]Press OK to continue.[/COLOR]")
+         xbmc.executebuiltin("Container.Refresh")
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/cfscrape.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/cfscrape.py
+@@ -1,381 +0,0 @@
+-import logging, random, time, re
+-
+-import ssl
+-
+-import xbmc
+-'''''''''
+-Disables InsecureRequestWarning: Unverified HTTPS request is being made warnings.
+-'''''''''
+-import requests
+-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+-''''''
+-from requests.sessions import Session
+-
+-from requests.adapters import HTTPAdapter
+-from requests.packages.urllib3.util.ssl_ import create_urllib3_context
+-
+-try:
+-    from urlparse import urlparse
+-    from urlparse import urlunparse
+-except ImportError:
+-    from urllib.parse import urlparse
+-    from urllib.parse import urlunparse
+-
+-#Debug Mode (enable lots of log())
+-DEBUG_MODE = False
+-__version__ = "0.0.0"
+-
+-def log(txt):
+-    print "%s" % txt
+-    #xbmc.log(str(txt), xbmc.LOGNOTICE)
+-
+-
+-DEFAULT_USER_AGENTS = [
+-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36",
+-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/65.0.3325.181 Chrome/65.0.3325.181 Safari/537.36",
+-    "Mozilla/5.0 (Linux; Android 7.0; Moto G (5) Build/NPPS25.137-93-8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.137 Mobile Safari/537.36",
+-    "Mozilla/5.0 (iPhone; CPU iPhone OS 7_0_4 like Mac OS X) AppleWebKit/537.51.1 (KHTML, like Gecko) Version/7.0 Mobile/11B554a Safari/9537.53",
+-    "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:60.0) Gecko/20100101 Firefox/60.0",
+-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:59.0) Gecko/20100101 Firefox/59.0",
+-    "Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0"
+-]
+-
+-BUG_REPORT = ("Cloudflare may have changed their technique, or there may be a bug in the script.\n\nPlease read " "https://github.com/Anorov/cloudflare-scrape#updates, then file a "
+-"bug report at https://github.com/Anorov/cloudflare-scrape/issues.")
+-
+-
+-class CipherSuiteAdapter(HTTPAdapter):
+-
+-    def __init__(self, cipherSuite=None, **kwargs):
+-        self.cipherSuite = cipherSuite
+-
+-        if hasattr(ssl, 'PROTOCOL_TLS'):
+-            self.ssl_context = create_urllib3_context(
+-                ssl_version=getattr(ssl, 'PROTOCOL_TLSv1_3', ssl.PROTOCOL_TLSv1_2),
+-                ciphers=self.cipherSuite
+-            )
+-        else:
+-            self.ssl_context = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1)
+-
+-        super(CipherSuiteAdapter, self).__init__(**kwargs)
+-
+-    ##########################################################################################################################################################
+-
+-    def init_poolmanager(self, *args, **kwargs):
+-        kwargs['ssl_context'] = self.ssl_context
+-        return super(CipherSuiteAdapter, self).init_poolmanager(*args, **kwargs)
+-
+-    ##########################################################################################################################################################
+-
+-    def proxy_manager_for(self, *args, **kwargs):
+-        kwargs['ssl_context'] = self.ssl_context
+-        return super(CipherSuiteAdapter, self).proxy_manager_for(*args, **kwargs)
+-
+-
+-class CloudflareScraper(Session):
+-    def __init__(self, *args, **kwargs):
+-        super(CloudflareScraper, self).__init__(*args, **kwargs)
+-        self.cf_tries = 0
+-        self.isCaptcha = False
+-        self.baseUrl = ""
+-        self.cipherSuite = None
+-
+-        if "requests" in self.headers["User-Agent"]:
+-            # Spoof a desktop browser if no custom User-Agent has been set. 'Connection:keep-alive'
+-            # and 'Accept-Decoding:gzip,deflate' headers are already set by the super.
+-            # The captcha is trigger if :
+-            #   - Connection is not equal to close
+-            #   - If we use self.headers.update and not self.headers
+-            self.headers= {
+-                    'User-Agent': random.choice(DEFAULT_USER_AGENTS),
+-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+-                    'Accept-Language': 'en-US,en;q=0.5',
+-                    'Connection': 'close',
+-                    'Cache-Control': 'no-cache',
+-                    'Pragma': 'no-cache',
+-                    'DNT': '1'
+-                }
+-        
+-        self.mount('https://', CipherSuiteAdapter(self.loadCipherSuite()))
+-
+-    def loadCipherSuite(self):
+-        if self.cipherSuite:
+-            return self.cipherSuite
+-
+-        self.cipherSuite = ''
+-
+-        if hasattr(ssl, 'PROTOCOL_TLS'):
+-            ciphers = [
+-                'ECDHE-ECDSA-AES128-GCM-SHA256', 'ECDHE-RSA-AES128-GCM-SHA256', 'ECDHE-ECDSA-AES256-GCM-SHA384',
+-                'ECDHE-RSA-AES256-GCM-SHA384', 'ECDHE-ECDSA-CHACHA20-POLY1305-SHA256', 'ECDHE-RSA-CHACHA20-POLY1305-SHA256',
+-                'ECDHE-RSA-AES128-CBC-SHA', 'ECDHE-RSA-AES256-CBC-SHA', 'RSA-AES128-GCM-SHA256', 'RSA-AES256-GCM-SHA384',
+-                'ECDHE-RSA-AES128-GCM-SHA256', 'RSA-AES256-SHA', '3DES-EDE-CBC'
+-            ]
+-
+-            if hasattr(ssl, 'PROTOCOL_TLSv1_3'):
+-                ciphers.insert(0, ['GREASE_3A', 'GREASE_6A', 'AES128-GCM-SHA256', 'AES256-GCM-SHA256', 'AES256-GCM-SHA384', 'CHACHA20-POLY1305-SHA256'])
+-
+-            ctx = ssl.SSLContext(getattr(ssl, 'PROTOCOL_TLSv1_3', ssl.PROTOCOL_TLSv1_2))
+-
+-            for cipher in ciphers:
+-                try:
+-                    ctx.set_ciphers(cipher)
+-                    self.cipherSuite = '{}:{}'.format(self.cipherSuite, cipher).rstrip(':')
+-                except ssl.SSLError:
+-                    pass
+-
+-        return self.cipherSuite
+-
+-    def request(self, method, url, *args, **kwargs):
+-        #Sometime the https trigge the captcha
+-        resp = super(CloudflareScraper, self).request(method, url, *args, **kwargs)
+-
+-        # Check if Cloudflare anti-bot is on
+-        if self.ifCloudflare(resp):
+-            #Sometime the https triggers the captcha
+-            if self.isCaptcha == True:
+-                if self.baseUrl == "":
+-                    self.baseUrl = resp.url
+-                self.baseUrl = self.baseUrl.replace('https','http')
+-                resp = super(CloudflareScraper, self).request(method, self.baseUrl, *args, **kwargs)
+-            return self.solve_cf_challenge(resp, **kwargs)
+-
+-        # Otherwise, no Cloudflare anti-bot detected
+-        if DEBUG_MODE == True:
+-            log(resp.text)
+-        return resp
+-
+-    def ifCloudflare(self, resp):
+-        if resp.headers.get('Server', '').startswith('cloudflare'):
+-            if self.cf_tries >= 3:
+-                raise Exception('Failed to solve Cloudflare challenge!')
+-            elif b'/cdn-cgi/l/chk_captcha' in resp.content:
+-                #Try without https
+-                if self.isCaptcha == False:
+-                    self.isCaptcha = True
+-                    self.cf_tries = 0
+-                    return True
+-                else:
+-                    raise Exception('Protect by Captcha')
+-            elif resp.status_code in [429, 503] and all(s in resp.content for s in [b'jschl_vc', b'jschl_answer']):
+-                return True
+-        else:
+-            return False
+-
+-    def solve_cf_challenge(self, resp, **original_kwargs):
+-        #Memorise the first url
+-        if self.baseUrl == "":
+-            self.baseUrl = resp.url
+-        self.cf_tries += 1
+-        body = resp.text
+-        parsed_url = urlparse(resp.url)
+-        domain = parsed_url.netloc
+-        submit_url = "%s://%s/cdn-cgi/l/chk_jschl" % (parsed_url.scheme, domain)
+-
+-        cloudflare_kwargs = original_kwargs.copy( )
+-        params = cloudflare_kwargs.setdefault("params", {})
+-        headers = cloudflare_kwargs.setdefault("headers", {})
+-        headers["Referer"] = resp.url
+-
+-        try:
+-            cf_delay = float(re.search('submit.*?(\d+)', body, re.DOTALL).group(1)) / 1000.0
+-
+-            form_index = body.find('id="challenge-form"')
+-            if form_index == -1:
+-                raise Exception('CF form not found')
+-            sub_body = body[form_index:]
+-
+-            s_match = re.search('name="s" value="(.+?)"', sub_body)
+-            if s_match:
+-                params["s"] = s_match.group(1) # On older variants this parameter is absent.
+-            params["jschl_vc"] = re.search(r'name="jschl_vc" value="(\w+)"', sub_body).group(1)
+-            params["pass"] = re.search(r'name="pass" value="(.+?)"', sub_body).group(1)
+-
+-            if body.find('id="cf-dn-', form_index) != -1:
+-                extra_div_expression = re.search('id="cf-dn-.*?>(.+?)<', sub_body).group(1)
+-
+-            # Initial value.
+-            js_answer = self.cf_parse_expression(
+-                re.search('setTimeout\(function\(.*?:(.*?)}', body, re.DOTALL).group(1)
+-            )
+-            # Extract the arithmetic operations.
+-            builder = re.search("challenge-form'\);\s*;(.*);a.value", body, re.DOTALL).group(1)
+-            # Remove a function semicolon before splitting on semicolons, else it messes the order.
+-            lines = builder.replace(' return +(p)}();', '', 1).split(';')
+-
+-            if DEBUG_MODE == True:
+-                log('s : '+params["s"])
+-                log('jschl_vc : '+params["jschl_vc"])
+-                log('pass : '+params["pass"])
+-                log('js_answer : '+str(js_answer))
+-                log('html Content : '+body)
+-                log('lines : ' +str(lines))
+-
+-            for line in lines:
+-                if len(line) and '=' in line:
+-                    heading, expression = line.split('=', 1)
+-                    if 'eval(eval(' in expression:
+-                        # Uses the expression in an external <div>.
+-                        expression_value = self.cf_parse_expression(extra_div_expression)
+-                    elif 'function(p' in expression:
+-                        # Expression + domain sampling function.
+-                        expression_value = self.cf_parse_expression(expression, domain)
+-                    else:
+-                        expression_value = self.cf_parse_expression(expression)
+-                    js_answer = self.cf_arithmetic_op(heading[-1], js_answer, expression_value)
+-
+-            if '+ t.length' in body:
+-                js_answer += len(domain) # Only older variants add the domain length.
+-
+-            params["jschl_answer"] = '%.10f' % js_answer
+-
+-            if DEBUG_MODE == True:
+-                log("jschl_answer : "+params["jschl_answer"])
+-
+-        except Exception as e:
+-            # Something is wrong with the page.
+-            # This may indicate Cloudflare has changed their anti-bot
+-            # technique. If you see this and are running the latest version,
+-            # please open a GitHub issue so I can update the code accordingly.
+-            logging.error("[!] %s Unable to parse Cloudflare anti-bots page. "
+-                          "Try upgrading cloudflare-scrape, or submit a bug report "
+-                          "if you are running the latest version. Please read "
+-                          "https://github.com/Anorov/cloudflare-scrape#updates "
+-                          "before submitting a bug report." % e)
+-            raise
+-
+-        # Cloudflare requires a delay before solving the challenge.
+-        # Always wait the full delay + 1s because of 'time.sleep()' imprecision.
+-        time.sleep(cf_delay + 1.0)
+-
+-        # Requests transforms any request into a GET after a redirect,
+-        # so the redirect has to be handled manually here to allow for
+-        # performing other types of requests even as the first request.
+-        cloudflare_kwargs['allow_redirects'] = False
+-
+-        redirect = self.request(resp.request.method, submit_url, **cloudflare_kwargs)
+-        redirect_location = urlparse(redirect.headers['Location'])
+-        if not redirect_location.netloc:
+-            redirect_url = urlunparse(
+-                (
+-                    parsed_url.scheme,
+-                    domain,
+-                    redirect_location.path,
+-                    redirect_location.params,
+-                    redirect_location.query,
+-                    redirect_location.fragment
+-                )
+-            )
+-            return self.request(resp.request.method, redirect_url, **original_kwargs)
+-
+-        return self.request(resp.request.method, redirect.headers['Location'], **original_kwargs)
+-
+-    def cf_sample_domain_function(self, func_expression, domain):
+-        parameter_start_index = func_expression.find('}(') + 2
+-        # Send the expression with the "+" char and enclosing parenthesis included, as they are
+-        # stripped inside ".cf_parse_expression()'.
+-        sample_index = self.cf_parse_expression(
+-            func_expression[parameter_start_index : func_expression.rfind(')))')]
+-        )
+-        return ord(domain[int(sample_index)])
+-
+-    def cf_arithmetic_op(self, op, a, b):
+-        if op == '+':
+-            return a + b
+-        elif op == '/':
+-            return a / float(b)
+-        elif op == '*':
+-            return a * float(b)
+-        elif op == '-':
+-            return a - b
+-        else:
+-            raise Exception('Unknown operation')
+-
+-    def cf_parse_expression(self, expression, domain=None):
+-
+-        def _get_jsfuck_number(section):
+-            digit_expressions = section.replace('!+[]', '1').replace('+!![]', '1').replace('+[]', '0').split('+')
+-            return int(
+-                # Form a number string, with each digit as the sum of the values inside each parenthesis block.
+-                ''.join(
+-                    str(sum(int(digit_char) for digit_char in digit_expression[1:-1])) # Strip the parenthesis.
+-                    for digit_expression in digit_expressions
+-                )
+-            )
+-
+-        if '/' in expression:
+-            dividend, divisor = expression.split('/')
+-            dividend = dividend[2:-1] # Strip the leading '+' char and the enclosing parenthesis.
+-
+-            if domain:
+-                # 2019-04-02: At this moment, this extra domain sampling function always appears on the
+-                # divisor side, at the end.
+-                divisor_a, divisor_b = divisor.split('))+(')
+-                divisor_a = _get_jsfuck_number(divisor_a[5:]) # Left-strip the sequence of "(+(+(".
+-                divisor_b = self.cf_sample_domain_function(divisor_b, domain)
+-                return _get_jsfuck_number(dividend) / float(divisor_a + divisor_b)
+-            else:
+-                divisor = divisor[2:-1]
+-                return _get_jsfuck_number(dividend) / float(_get_jsfuck_number(divisor))
+-        else:
+-            return _get_jsfuck_number(expression[2:-1])
+-
+-    @classmethod
+-    def create_scraper(cls, sess=None, **kwargs):
+-        """
+-        Convenience function for creating a ready-to-go requests.Session (subclass) object.
+-        """
+-        scraper = cls()
+-
+-        if sess:
+-            attrs = ["auth", "cert", "cookies", "headers", "hooks", "params", "proxies", "data"]
+-            for attr in attrs:
+-                val = getattr(sess, attr, None)
+-                if val:
+-                    setattr(scraper, attr, val)
+-
+-        return scraper
+-
+-    ## Functions for integrating cloudflare-scrape with other applications and scripts
+-    @classmethod
+-    def get_tokens(cls, url, user_agent=None, **kwargs):
+-        scraper = cls.create_scraper()
+-        if user_agent:
+-            scraper.headers["User-Agent"] = user_agent
+-
+-        try:
+-            resp = scraper.get(url, **kwargs)
+-            resp.raise_for_status()
+-        except Exception as e:
+-            logging.error("'%s' returned an error. Could not collect tokens." % url)
+-            raise
+-
+-        domain = urlparse(resp.url).netloc
+-        cookie_domain = None
+-
+-        for d in scraper.cookies.list_domains():
+-            if d.startswith(".") and d in ("." + domain):
+-                cookie_domain = d
+-                break
+-        else:
+-            raise ValueError("Unable to find Cloudflare cookies. Does the site actually have Cloudflare IUAM (\"I'm Under Attack Mode\") enabled?")
+-
+-        return ({
+-                    "__cfduid": scraper.cookies.get("__cfduid", "", domain=cookie_domain),
+-                    "cf_clearance": scraper.cookies.get("cf_clearance", "", domain=cookie_domain)
+-                },
+-                scraper.headers["User-Agent"]
+-               )
+-
+-    @classmethod
+-    def get_cookie_string(cls, url, user_agent=None, **kwargs):
+-        """
+-        Convenience function for building a Cookie HTTP header value.
+-        """
+-        tokens, user_agent = cls.get_tokens(url, user_agent=user_agent, **kwargs)
+-        return "; ".join("=".join(pair) for pair in tokens.items()), user_agent
+-
+-create_scraper = CloudflareScraper.create_scraper
+-get_tokens = CloudflareScraper.get_tokens
+-get_cookie_string = CloudflareScraper.get_cookie_string
+\ No newline at end of file
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/cfscrape/captcha/python_anticaptcha/__init__.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/cfscrape/captcha/python_anticaptcha/__init__.py
+@@ -1,5 +1,9 @@
+ from .base import AnticaptchaClient
+-from pkg_resources import get_distribution, DistributionNotFound
++try:
++    from pkg_resources import get_distribution, DistributionNotFound
++except ImportError:  # setuptools/pkg_resources is not shipped with Kodi's Python
++    class DistributionNotFound(Exception): pass
++    def get_distribution(name): raise DistributionNotFound(name)
+ from .tasks import (
+     NoCaptchaTask,
+     NoCaptchaTaskProxylessTask,

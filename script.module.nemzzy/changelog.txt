@@ -1,0 +1,5 @@
+[B]Version 11.01.000[/B]
+- Deobfuscated startup service; keeps addon update notifications and service ping.
+
+[B]Version 1.00[/B]
+- Initial Release.

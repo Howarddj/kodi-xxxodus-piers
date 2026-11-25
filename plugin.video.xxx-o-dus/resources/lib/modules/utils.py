@@ -11,6 +11,13 @@ import cache
 import log_utils
 import pyxbmct
 
+_FORMAT_TAGS = re.compile(r'\[/?(?:COLOR[^\]]*|B|I|LIGHT|UPPERCASE|LOWERCASE|CAPITALIZE|CR)\]', re.IGNORECASE)
+
+def _plain(text):
+    # Drop Kodi label formatting so every item uses the skin's own text colour and weight
+    try: return _FORMAT_TAGS.sub('', text).strip()
+    except TypeError: return text
+
 def _set_video_info(item, title, plot=None):
     # Kodi 20+: ListItem.setInfo('video', ...) is deprecated; use the InfoTagVideo setters
     try:
@@ -81,6 +88,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
                     name = kodi.sortX(name)
                 except: pass
             else: name = name.replace('file_path','')
+            name = _plain(name)
             
             item = xbmcgui.ListItem(label=name)
             
@@ -93,7 +101,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
                 description = kodi.sortX(description)
             except: pass
                 
-            kodi.giveColor(description, 'white', True)
+            description = _plain(description)
             if pictures: item.setInfo('picture', {'title': name, 'plot': description} )
             else: _set_video_info(item, name, description)
 
@@ -108,10 +116,12 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
             else: thumb = i['icon']
             if i['fanart'] == None: fanart=kodi.addonicon
             else: fanart = i['fanart']
-            if ( not thumb == 'local' ) and ( not fanart == 'local' ):
-                item.setArt({'icon': thumb, 'thumb': thumb, 'fanart': fanart})
+            # No background image: items carry only icon/thumb art, so the skin's own background shows
+            fanart = ''
+            if not thumb == 'local':
+                item.setArt({'icon': thumb, 'thumb': thumb})
             else:
-                item.setArt({'icon': url, 'thumb': url, 'fanart': fanart})
+                item.setArt({'icon': url, 'thumb': url})
                 
             try:
                 if i['folder']: _folder = True

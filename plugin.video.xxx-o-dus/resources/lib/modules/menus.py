@@ -54,8 +54,6 @@ def mainMenu():
     dirlst = []
     c = []
     c += [
-         ('[COLOR yellow]View Changelog[/COLOR]',translatePath(os.path.join(kodi.addonfolder, 'changelog.txt')),17,'changelog','View XXX-O-DUS Changelog.',False), \
-         ('[COLOR orange]Check XXX-O-DUS Health',None,46,'icon','Versions',False), \
          #('[COLOR magenta]Install CumWithMe ( New Addon )',None,50,'icon','Versions',False), \
          ('Search...',None,29,'search','Search XXX-O-DUS',True), \
          ('[COLOR pink]Live Cams',None,37,'webcams','Live Cams',True), \
@@ -71,15 +69,13 @@ def mainMenu():
          ('[COLOR pink]Pictures',None,35,'pics','Pictures',True), \
          ('[COLOR pink]For Gay Men',None,47,'gaymen','Videos',True), \
          #('Comics',None,41,'comics','Comics',True), \
-         ('[COLOR red]Parental Controls',None,5,'parental_controls','View/Change Parental Control Settings.',True), \
          ('[COLOR red]Your History',None,20,'history','View Your History.',True), \
          ('[COLOR red]Your Favourites',None,23,'favourites','View Your Favourites.',True), \
          ('[COLOR red]Your Downloads',None,27,'downloads','View Your Downloads.',True), \
-         ('[COLOR red]Your Settings',None,19,'settings','View/Change Addon Settings.',False), \
+         ('[COLOR red]XXX-O-DUS Tools',None,6,'addon_info','Changelog, health check, parental controls, settings and reset.',True), \
          #('View Disclaimer',xbmc.translatePath(os.path.join(kodi.addonfolder, 'resources/files/disclaimer.txt')),17,'disclaimer','View XXX-O-DUS Disclaimer.',False), \
          #('View Addon Information',xbmc.translatePath(os.path.join(kodi.addonfolder, 'resources/files/information.txt')),17,'addon_info','View XXX-O-DUS Information.',False), \
          #('Debug Versions',None,45,'addon_info','View the versions of XXXODUS and its dependencies for debugging.',True), \
-         ('RESET XXX-O-DUS',None,18,'reset','Reset XXX-O-DUS to Factory Settings.',False), \
          ]
 
     for i in c:
@@ -89,6 +85,25 @@ def mainMenu():
     #dialog.ok("DIRLIST",str(dirlst))
     buildDirectory(dirlst, cache=False)
     
+@utils.url_dispatcher.register('6')
+def toolsMenu():
+
+    art = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', 'main/%s.png'))
+    dirlst = []
+    c = [
+         ('[COLOR yellow]View Changelog[/COLOR]',translatePath(os.path.join(kodi.addonfolder, 'changelog.txt')),17,'changelog','View XXX-O-DUS Changelog.',False), \
+         ('[COLOR orange]Check XXX-O-DUS Health',None,46,'icon','Versions',False), \
+         ('[COLOR red]Parental Controls',None,5,'parental_controls','View/Change Parental Control Settings.',True), \
+         ('[COLOR red]XXX-O-DUS Settings',None,19,'settings','View/Change Addon Settings.',False), \
+         ('RESET XXX-O-DUS',None,18,'reset','Reset XXX-O-DUS to Factory Settings.',False), \
+         ]
+
+    for i in c:
+        icon    = art % i[3]
+        fanart  = kodi.addonfanart
+        dirlst.append({'name': kodi.giveColor(i[0],'white'), 'url': i[1], 'mode': i[2], 'icon': icon, 'fanart': fanart, 'description': i[4], 'folder': i[5]})
+    buildDirectory(dirlst, cache=False)
+
 @utils.url_dispatcher.register('37')
 
 

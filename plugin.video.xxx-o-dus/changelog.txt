@@ -1,11 +1,12 @@
 [COLOR pink]Welcome To XXX-O-DUS[/COLOR]
 
-[COLOR aqua]XXXODUS : 99.00.032 (Kodi 22 / 23 patched build)[/COLOR]
+[COLOR aqua]XXXODUS : 99.00.033 (Kodi 22 / 23 patched build)[/COLOR]
 
 [COLOR aqua]SCRAPERS : 99.00.021[/COLOR]
 
 
 [COLOR yellow]FIXED[/COLOR]
+[COLOR white]New XXX-O-DUS Tools menu: View Changelog, Check Health, Parental Controls, XXX-O-DUS Settings, Reset[/COLOR]
 [COLOR white]Removed the Welcome, Maintained By and Report Issues entries from the main menu[/COLOR]
 [COLOR white]Blank screen on first open with skins that lock views (e.g. Bingie): menus are no longer tagged as movies and no Estuary view IDs are forced[/COLOR]
 [COLOR white]Logging crashed on Python 3 and hid every scraper error ("name 'unicode' is not defined")[/COLOR]

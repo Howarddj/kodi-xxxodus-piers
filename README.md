@@ -5,7 +5,7 @@ A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, pa
 ## Install
 
 1. In Kodi go to **Settings → File manager → Add source** and enter
-   `https://raw.githubusercontent.com/OWNER/REPO/main/`
+   `https://raw.githubusercontent.com/Howarddj/kodi-xxxodus-piers/main/`
    (or download `repository.xxxodus.piers-1.0.0.zip` from this repo).
 2. **Add-ons → Install from zip file** → pick `repository.xxxodus.piers-1.0.0.zip`.
 3. **Add-ons → Install from repository → XXX-O-DUS Piers Repository → Video add-ons → XXX-O-DUS**.

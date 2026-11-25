@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="repository.xxxodus.piers" name="XXX-O-DUS Piers Repository" version="1.0.0" provider-name="OWNER">
+<addon id="repository.xxxodus.piers" name="XXX-O-DUS Piers Repository" version="1.0.0" provider-name="Howarddj">
   <extension point="xbmc.addon.repository" name="XXX-O-DUS Piers Repository">
     <!-- This repo: patched XXX-O-DUS, its Stream Army modules, artwork, and pinned ResolveURL copies -->
     <dir>
-      <info compressed="false">https://raw.githubusercontent.com/OWNER/REPO/main/zips/addons.xml</info>
-      <checksum>https://raw.githubusercontent.com/OWNER/REPO/main/zips/addons.xml.md5</checksum>
-      <datadir zip="true">https://raw.githubusercontent.com/OWNER/REPO/main/zips/</datadir>
+      <info compressed="false">https://raw.githubusercontent.com/Howarddj/kodi-xxxodus-piers/main/zips/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/Howarddj/kodi-xxxodus-piers/main/zips/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/Howarddj/kodi-xxxodus-piers/main/zips/</datadir>
     </dir>
     <!-- Upstream ResolveURL (Gujal00) so the resolvers keep receiving updates -->
     <dir>
@@ -19,7 +19,7 @@
     <description lang="en_GB">Hosts XXX-O-DUS and every non-official dependency it needs, patched for Python 3.14 / Kodi 22. Official modules (requests, six, kodi-six, beautifulsoup4, html5lib, pyxbmct, inputstreamhelper, pyqrcode) come from the Kodi repository.</description>
     <platform>all</platform>
     <license>GPL-3.0-or-later</license>
-    <source>https://github.com/OWNER/REPO</source>
+    <source>https://github.com/Howarddj/kodi-xxxodus-piers</source>
     <assets>
       <icon>icon.png</icon>
       <fanart>fanart.jpg</fanart>

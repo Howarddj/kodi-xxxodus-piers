@@ -1,40 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.cwm" name="Cum With Me" version="99.01.000" provider-name="Nemzzy668">
-  <requires>
-    <import addon="xbmc.python" version="3.0.0"/>
-    <import addon="script.module.requests" />
-	<import addon="script.module.beautifulsoup4" />
-	<import addon="script.module.resolveurl" />
-	<import addon="script.cwm.scrapers" version="99.00.016"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource" library="Main.py">
-    <provides>video</provides>
-  </extension>
-  <extension point="xbmc.service" library="service.py" start="startup">
-  </extension>
-  <extension point="xbmc.addon.metadata">
-    <summary lang="en">Live channels, cams, movies and tube sites as Kodi lists</summary>
-    <description lang="en">Live adult TV channels, Chaturbate cams, movies and 20 tube sites as normal Kodi lists, so your skin controls the look. Patched for Kodi 22 / 23: no PIN, no Stream Army servers contacted, Python 3.12+ fixes.</description>
-    <platform>all</platform>
-	<assets>
-        <icon>icon.png</icon>
-        <fanart>fanart.jpg</fanart>
-    </assets>
-  </extension>
-</addon>
-
 <addon id="plugin.video.xxx-o-dus" 
 	     name="XXX-O-DUS" 
-	     version="99.00.036"
+	     version="99.00.037"
 	     provider-name="Originally By : Echo Coder :: Revived By @Nemzzy668">
   <requires>
     <!-- Patched Kodi 22 builds of these three live only in the XXX-O-DUS Piers repository; the
          minimum versions stop Kodi from using Stream Army's unpatched 5.x/12.x modules. -->
     <!-- <import addon="xbmc.python" version="2.24.0"/> -->
     <import addon="script.module.echo" version="99.00.002"/>
-    <import addon="script.xxxodus.artwork" version="99.00.002"/>
-    <import addon="script.xxxodus.scrapers" version="99.00.022"/>
+    <import addon="script.xxxodus.artwork" version="99.00.003"/>
+    <import addon="script.xxxodus.scrapers" version="99.00.023"/>
     <import addon="script.module.resolveurl"/>
     <import addon="script.module.resolveurl.xxx"/>
     <import addon="script.module.pyxbmct"/>
@@ -97,20 +73,6 @@
       <fanart>fanart.jpg</fanart>
     </assets>
   </extension>
-</addon>
-
-<addon id="script.cwm.scrapers" name="CumWithMe Scrapers" version="99.00.016" provider-name="@Nemzzy668">
-	<requires>
-		<import addon="xbmc.python" version="3.0.0"/>
-		<import addon="script.module.requests" />
-		<import addon="script.module.beautifulsoup4" />
-		<import addon="script.module.html5lib" />
-	</requires>
-	<extension point="xbmc.python.module" library="lib" />
-	<extension point="xbmc.addon.metadata">
-		<platform>all</platform>
-		<summary lang="en">Scrapers for use in CumWithMe</summary>
-	</extension>
 </addon>
 
 <addon id="script.module.echo" name="Echo Libraries" version="99.00.002" provider-name="Echo Coder">
@@ -190,7 +152,7 @@
     </extension>
 </addon>
 
-<addon id="script.xxxodus.artwork" version="99.00.002" name="XXXODUS Artwork" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
+<addon id="script.xxxodus.artwork" version="99.00.003" name="XXXODUS Artwork" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
 	<requires>
 		<!-- <import addon="xbmc.python" version="2.24.0"/> -->
 	</requires>
@@ -202,7 +164,7 @@
 	</extension>
 </addon>
 
-<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="99.00.022" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
+<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="99.00.023" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
 	<requires>
 		<!-- <import addon="xbmc.python" version="2.24.0" /> -->
 		<import addon="script.module.requests" />

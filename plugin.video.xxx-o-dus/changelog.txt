@@ -1,6 +1,22 @@
 [COLOR pink]Welcome To XXX-O-DUS[/COLOR]
 
-[COLOR aqua]XXXODUS : 99.00.036 (Kodi 22 / 23 patched build)[/COLOR]
+[COLOR aqua]XXXODUS : 99.00.037 (Kodi 22 / 23 patched build)[/COLOR]
+
+[COLOR aqua]SCRAPERS : 99.00.023[/COLOR]
+
+
+[COLOR yellow]NEW[/COLOR]
+[COLOR white]11 more sites in Tubes and Search, merged from Cum With Me: Xhamster, ClipHunter, CumLouder, Fux, MrDeepFakes, Porn300, PornerBros, PornTube, Shameless, Thumbzilla, TubeWolf[/COLOR]
+
+[COLOR yellow]FIXED[/COLOR]
+[COLOR white]Monitored Performers showed everyone as offline or "Error Checking"[/COLOR]
+[COLOR white]Performer online alerts: skipped when the room had no subject, only fired once per Kodi session, and stopped if the list was empty at startup[/COLOR]
+
+[COLOR yellow]REMOVED[/COLOR]
+[COLOR white]First-run install counter (bit.ly) and three unused links to outside servers[/COLOR]
+
+
+[COLOR aqua]XXXODUS : 99.00.036[/COLOR]
 
 [COLOR aqua]SCRAPERS : 99.00.022[/COLOR]
 

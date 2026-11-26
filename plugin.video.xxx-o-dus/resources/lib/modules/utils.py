@@ -243,59 +243,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
         if cache: xbmcplugin.endOfDirectory(syshandle, cacheToDisc=True)
         else: xbmcplugin.endOfDirectory(syshandle, cacheToDisc=False)
     
-@url_dispatcher.register('45')
-def depVersions():
-    
-    try: xbmc_version=xbmc.getInfoLabel("System.BuildVersion").split(' ')[0]
-    except: 'Unknown'
-    try: xbmc_builddate=xbmc.getInfoLabel('System.BuildDate')
-    except: 'Unknown'
-    try: xbmc_language=xbmc.getInfoLabel('System.Language')
-    except: 'Unknown'
-    try: python_version = sys.version.split(' ')[0]
-    except: 'Unknown'
-
-    try:
-        xml1 = client.request('https://raw.githubusercontent.com/Colossal1/repository.colossus/master/addons.xml')
-        xml2 = client.request('https://raw.githubusercontent.com/Colossal1/repository.colossus.common/master/addons.xml')
-        lst = [('plugin.video.xxx-o-dus'),('script.xxxodus.scrapers'),('script.xxxodus.artwork'), \
-               ('script.module.echo'),('script.module.resolveurl'),('script.module.resolveurl.xxx')]
-
-        c = []
-        c += [(kodi.giveColor('Kodi Version: ','white',True) + kodi.giveColor(xbmc_version,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_version)]
-        c += [(kodi.giveColor('Python Version: ','white',True) + kodi.giveColor(python_version,'pink'), kodi.addonicon, kodi.addonfanart, python_version)]
-        c += [(kodi.giveColor('Kodi Build Date: ','white',True) + kodi.giveColor(xbmc_builddate,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_builddate)]
-        c += [(kodi.giveColor('Kodi Language: ','white',True) + kodi.giveColor(xbmc_language,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_language)]
-
-        for i in lst:
-            addon_name = xbmcaddon.Addon('%s' % i).getAddonInfo('name')
-            addon_id = xbmcaddon.Addon('%s' % i).getAddonInfo('id')
-            addon_version = xbmcaddon.Addon('%s' % i).getAddonInfo('version')
-            addon_description = xbmcaddon.Addon('%s' % i).getAddonInfo('description')
-            pattern = r'''id=['"]%s['"][\w\s='"-]+version=['"]([^'"]+)['"]''' % addon_id
-            try: 
-                cur_ver = re.findall(pattern, xml1)[0]
-            except:
-                try:
-                    cur_ver = re.findall(pattern, xml2)[0]
-                except: cur_ver = 'Unknown'
-                
-            in_v = int(addon_version.replace('.',''))
-            cur_v = int(cur_ver.replace('.',''))
-            if in_v < cur_v: ver_color = 'orangered'
-            else: ver_color = 'lime'
-            icon = translatePath(os.path.join('special://home/addons', addon_id + '/icon.png'))
-            c += [(kodi.giveColor(addon_name,'white',True) + kodi.giveColor('| Installed: ','white') + kodi.giveColor(addon_version,ver_color,True) + ' - ' + kodi.giveColor('Available: ','white',True) + kodi.giveColor(cur_ver,'pink',True), icon, kodi.addonfanart, addon_description)]
-        
-        dirlst = []
-        
-        for e in c:
-            dirlst.append({'name': kodi.giveColor(e[0],'white'), 'url': 'None', 'mode': 999, 'icon': e[1], 'fanart': e[2], 'description': e[3], 'folder': False})
-
-        buildDir(dirlst)
-    except:
-        kodi.notify(msg='Error opening directory.', sound = True)
-        quit()
+# depVersions() (mode 45, never linked from a menu) removed: it fetched the original author's repository index
 
 @url_dispatcher.register('19')
 def showSettings():

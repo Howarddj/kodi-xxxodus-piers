@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<settings>
-	<category label="Cam Monitor Settings">
-		<setting id="Monitor" type="bool" label="Alert me when a favourite performer comes online (restart Kodi after changing)" default="false"/>
-	</category>
-</settings>

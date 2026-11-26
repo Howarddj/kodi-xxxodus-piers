@@ -1,6 +1,6 @@
-# XXX-O-DUS and Cum With Me for Kodi 22 "Piers"
+# XXX-O-DUS for Kodi 22 "Piers"
 
-A Kodi repository with XXX-O-DUS, Cum With Me and every non-official add-on they depend on, patched to run on Kodi 22 / 23 (Python 3.14).
+A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, patched to run on Kodi 22 / 23 (Python 3.14).
 
 ## Install
 
@@ -10,7 +10,6 @@ A Kodi repository with XXX-O-DUS, Cum With Me and every non-official add-on they
 2. **Add-ons → Install from zip file** → pick `repository.xxxodus.piers-1.0.0.zip`.
 3. **Add-ons → Install from repository → XXX-O-DUS Piers Repository → Video add-ons → XXX-O-DUS**.
    Kodi installs all dependencies automatically.
-   Cum With Me is in the same place: **Video add-ons → Cum With Me**.
 
 If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.036 as an update.
 
@@ -18,13 +17,11 @@ If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.
 
 | Add-on | Version | Source | Changes |
 |---|---|---|---|
-| `plugin.video.xxx-o-dus` | 99.00.036 | Stream Army 5.00.028 | Patched (see below) |
+| `plugin.video.xxx-o-dus` | 99.00.037 | Stream Army 5.00.028 | Patched (see below) |
 | `script.module.echo` | 99.00.002 | Stream Army 5.00.000 | Patched |
-| `script.xxxodus.scrapers` | 99.00.022 | Stream Army 5.00.020 | Patched |
+| `script.xxxodus.scrapers` | 99.00.023 | Stream Army 5.00.020 | Patched; 11 sites added from Cum With Me |
 | `script.module.nemzzy` | 99.00.000 | Stream Army 12.00.000 | Patched |
-| `script.xxxodus.artwork` | 99.00.002 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
-| `plugin.video.cwm` (Cum With Me) | 99.01.000 | Stream Army 2.00.000 | Rebuilt as a Kodi list add-on (see below) |
-| `script.cwm.scrapers` | 99.00.016 | Stream Army 1.00.014 | Patched |
+| `script.xxxodus.artwork` | 99.00.003 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |
 | `script.module.resolveurl.xxx` | 2.1.44 | Gujal00 | Unchanged |
 | `repository.xxxodus.piers` | 1.0.0 | — | This repository |
@@ -61,37 +58,19 @@ The patched add-ons use version 99 so Stream Army releases never replace them, a
   * SQL deletes built by string formatting failed on names containing an apostrophe
   * the default download folder was a Windows path
   * `XBMC.`-prefixed built-ins, which Kodi 19+ ignores
+* **99.00.037:**
+  * 11 sites merged from Cum With Me (see below)
+  * Monitored Performers and its online alerts fixed
+  * the first-run `bit.ly` install counter removed, along with three unused links to outside servers
+  * the only outside list still fetched is the "sexmovies" section's own pastebin page
 * **Kept:** the first-run 18+ confirmation and the optional parental-control lock.
 * **Readable source:** the obfuscated `default.py`, `menus.py` and `lover.py` were replaced with readable source.
 
 `patches/xxx-o-dus-all-changes.diff` has every change; for formerly obfuscated files it compares against the decoded originals.
 
-## Cum With Me changes
+## Cum With Me (merged and removed)
 
-Cum With Me 99.01.000 is a rebuild of Stream Army's 2.00.000 as a **normal Kodi list add-on**. The original was a full-screen pyxbmct window with its own artwork. Now every screen is an ordinary folder listing, so your skin controls the views, fonts, colours, artwork and background, as with any other video add-on.
-
-* **Menus:**
-  * **Live XXX Channels**
-  * **Live XXX Cams:** Favourites, Tags, and an alerts on/off row; add or remove favourites from the context menu
-  * **XXX Movies:** plus Studios
-  * **XXX Sites:** 20 sites, each with Categories, plus Search All Sites
-  * **Settings**
-* Every list has a Next Page item; videos play through Kodi's normal `setResolvedUrl`, and a source picker appears when a video has several links.
-* **No Stream Army servers are contacted.**
-  * Removed: the `pinsystem.co.uk` PIN gate, user-ID registration, chat room, notice text, "online" counters and online version check.
-  * The scrapers' default thumbnail was loaded from Stream Army's GitHub; it is now the add-on's own icon.
-  * `script.module.nemzzy` is no longer a requirement (Cum With Me never used it).
-  * The only hosts contacted are the video sites themselves (and the hosts ResolveURL resolves).
-* **Kept:** favourite performers and the optional "performer is online" alert service, which checks Chaturbate only.
-* **Fixes carried over from 99.00.001:**
-  * scraper loader for Python 3.12+ (0 of 20 sites loaded before)
-  * timeouts on every request
-  * site errors show a message and Kodi goes back instead of hanging
-  * parameterised SQL
-  * debug pop-ups removed from scrapers
-  * `[COLOR]`/`[B]`/`[I]` tags stripped from all text
-
-`patches/cum-with-me-all-changes.diff` has every code change, compared against the decoded originals.
+Cum With Me was added in this repository's history and later dropped. Its 11 sites that XXX-O-DUS lacked are now XXX-O-DUS Tubes, with their site code in `script.xxxodus.scrapers/lib/cwm_engines/`. Its other sources (the live-channel site, Chaturbate, Pandamovies and 9 tube sites) were already in XXX-O-DUS, and so was its main feature, favourite performers with online alerts (Live Cams → Monitored Performers). If you installed it, uninstall it from **Video add-ons**: it will receive no further updates.
 
 ## Rebuilding
 

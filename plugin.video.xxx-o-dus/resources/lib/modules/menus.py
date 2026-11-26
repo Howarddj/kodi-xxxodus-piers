@@ -36,7 +36,6 @@ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 #from resources.lib.pyxbmct_.github import xxxgit
 from scrapers import __all__
 from scrapers import *
-messagetext  = 'https://pastebin.com/raw/SgsRvwZV'
 AddonTitle   = '[COLOR pink][B]XXX-O-DUS[/B][/COLOR]'
 addon_id     = 'plugin.video.xxx-o-dus'
 scraper_id   = 'script.xxxodus.scrapers'

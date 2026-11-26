@@ -51,18 +51,22 @@ try:
             e = [u for u in c.fetchall()]
             conn.close()
             if len(e) < 1:
-                quit()
+                # nobody monitored yet: keep running so performers added later are still checked
+                if monitor.waitForAbort(60): break
+                continue
             for (title, link, iconimage) in e:
                 if (not title in str(lst) ):
                     #xbmc.log('XXX-O-DUS: Checking %s' % title, xbmc.LOGINFO)
                     try:
-                        r = requests.get(link).text
+                        r = requests.get(link, timeout=15).text
                         # req = urllib2.Request(link)
                         # response = urllib2.urlopen(req, timeout = 10)
                         # r=response.read()
                         # response.close()
                         if '.m3u8' in r:
-                            content = re.compile('default_subject:\\s\"([^,]+)",').findall(r)[0]; content = unquote_plus(content)
+                            # the room subject is optional: a missing one used to cancel the alert
+                            subj = re.compile('default_subject:\\s\"([^,]+)",').findall(r)
+                            content = unquote_plus(subj[0]) if subj else 'is online now'
                             try: content=content.encode('utf-8') if PY2 else content
                             except: content=content
                             xbmcgui.Dialog().notification(title + ' online!',content, iconimage, 7500, True)
@@ -70,9 +74,9 @@ try:
                             xbmc.sleep(3500)
                     except: pass
 
-        xbmc.sleep(5000)
+        if monitor.waitForAbort(5): break
 
-        if i >= 2879:
+        if j >= 2879:   # was 'i', which only counts to 59: alerts never re-armed
             lst = []
             xbmc.log('XXX-O-DUS: Reseting Checked List', xbmc.LOGINFO)
         i = (i + 1) % 60

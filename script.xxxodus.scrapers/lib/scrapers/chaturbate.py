@@ -163,9 +163,9 @@ def getMonitoring():
     for (name, url, iconimage) in e:
         try:
             iconimage = 'https://roomimg.stream.highwebmedia.com/ri/' + name.lower() + '.jpg'
-            progress = 100 * int(i)/len(e)
-            kodi.dp.update(progress,"[COLOR white]Currently Checking " + name + "[/COLOR]","[COLOR white]Checked " + str(i) + " of " + str(len(e)) + "[/COLOR]")
-            r = requests.get(url, headers=headers)
+            progress = int(100 * i / len(e))   # Kodi 19+: int percent and one message (the 3-line form raised TypeError)
+            kodi.dp.update(progress, "Currently Checking " + name + "\nChecked " + str(i) + " of " + str(len(e)))
+            r = requests.get(url, headers=headers, timeout=15).text  # was the Response object: '.m3u8' in r was always False
             if '.m3u8' in r:
                 namelist.append(name)
                 urllist.append(url)

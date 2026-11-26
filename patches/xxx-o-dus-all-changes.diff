@@ -2354,3 +2354,268 @@ index 6b4d82c..fe4d8b9 100644
      conn.commit()
      conn.close()
   
+
+
+# ---- 99.00.037: Cum With Me sites merged, monitor fixes, install counter removed ----
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/firstStart.py b/plugin.video.xxx-o-dus/resources/lib/modules/firstStart.py
+index 82d79c7..9c0e27c 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/firstStart.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/firstStart.py
+@@ -12,10 +12,7 @@ class run:
+ 
+         if ( not os.path.isfile(self.firstRunFile) ): 
+             self.checkAge()
+-            kodi.busy()
+-            try: countme = client.request('http://bit.ly/2vchTCP')
+-            except: pass
+-            kodi.idle()
++            # the first-run bit.ly request (install counter for the original author) is removed
+             try: utils.viewDialog(self.informationFile)
+             except: pass
+         return
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/menus.py b/plugin.video.xxx-o-dus/resources/lib/modules/menus.py
+index e380443..82a8754 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/menus.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/menus.py
+@@ -36,7 +36,6 @@ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ #from resources.lib.pyxbmct_.github import xxxgit
+ from scrapers import __all__
+ from scrapers import *
+-messagetext  = 'https://pastebin.com/raw/SgsRvwZV'
+ AddonTitle   = '[COLOR pink][B]XXX-O-DUS[/B][/COLOR]'
+ addon_id     = 'plugin.video.xxx-o-dus'
+ scraper_id   = 'script.xxxodus.scrapers'
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+index aee1d57..65bf854 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+@@ -243,59 +243,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
+         if cache: xbmcplugin.endOfDirectory(syshandle, cacheToDisc=True)
+         else: xbmcplugin.endOfDirectory(syshandle, cacheToDisc=False)
+     
+-@url_dispatcher.register('45')
+-def depVersions():
+-    
+-    try: xbmc_version=xbmc.getInfoLabel("System.BuildVersion").split(' ')[0]
+-    except: 'Unknown'
+-    try: xbmc_builddate=xbmc.getInfoLabel('System.BuildDate')
+-    except: 'Unknown'
+-    try: xbmc_language=xbmc.getInfoLabel('System.Language')
+-    except: 'Unknown'
+-    try: python_version = sys.version.split(' ')[0]
+-    except: 'Unknown'
+-
+-    try:
+-        xml1 = client.request('https://raw.githubusercontent.com/Colossal1/repository.colossus/master/addons.xml')
+-        xml2 = client.request('https://raw.githubusercontent.com/Colossal1/repository.colossus.common/master/addons.xml')
+-        lst = [('plugin.video.xxx-o-dus'),('script.xxxodus.scrapers'),('script.xxxodus.artwork'), \
+-               ('script.module.echo'),('script.module.resolveurl'),('script.module.resolveurl.xxx')]
+-
+-        c = []
+-        c += [(kodi.giveColor('Kodi Version: ','white',True) + kodi.giveColor(xbmc_version,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_version)]
+-        c += [(kodi.giveColor('Python Version: ','white',True) + kodi.giveColor(python_version,'pink'), kodi.addonicon, kodi.addonfanart, python_version)]
+-        c += [(kodi.giveColor('Kodi Build Date: ','white',True) + kodi.giveColor(xbmc_builddate,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_builddate)]
+-        c += [(kodi.giveColor('Kodi Language: ','white',True) + kodi.giveColor(xbmc_language,'pink'), kodi.addonicon, kodi.addonfanart, xbmc_language)]
+-
+-        for i in lst:
+-            addon_name = xbmcaddon.Addon('%s' % i).getAddonInfo('name')
+-            addon_id = xbmcaddon.Addon('%s' % i).getAddonInfo('id')
+-            addon_version = xbmcaddon.Addon('%s' % i).getAddonInfo('version')
+-            addon_description = xbmcaddon.Addon('%s' % i).getAddonInfo('description')
+-            pattern = r'''id=['"]%s['"][\w\s='"-]+version=['"]([^'"]+)['"]''' % addon_id
+-            try: 
+-                cur_ver = re.findall(pattern, xml1)[0]
+-            except:
+-                try:
+-                    cur_ver = re.findall(pattern, xml2)[0]
+-                except: cur_ver = 'Unknown'
+-                
+-            in_v = int(addon_version.replace('.',''))
+-            cur_v = int(cur_ver.replace('.',''))
+-            if in_v < cur_v: ver_color = 'orangered'
+-            else: ver_color = 'lime'
+-            icon = translatePath(os.path.join('special://home/addons', addon_id + '/icon.png'))
+-            c += [(kodi.giveColor(addon_name,'white',True) + kodi.giveColor('| Installed: ','white') + kodi.giveColor(addon_version,ver_color,True) + ' - ' + kodi.giveColor('Available: ','white',True) + kodi.giveColor(cur_ver,'pink',True), icon, kodi.addonfanart, addon_description)]
+-        
+-        dirlst = []
+-        
+-        for e in c:
+-            dirlst.append({'name': kodi.giveColor(e[0],'white'), 'url': 'None', 'mode': 999, 'icon': e[1], 'fanart': e[2], 'description': e[3], 'folder': False})
+-
+-        buildDir(dirlst)
+-    except:
+-        kodi.notify(msg='Error opening directory.', sound = True)
+-        quit()
++# depVersions() (mode 45, never linked from a menu) removed: it fetched the original author's repository index
+ 
+ @url_dispatcher.register('19')
+ def showSettings():
+diff --git a/plugin.video.xxx-o-dus/service.py b/plugin.video.xxx-o-dus/service.py
+index 88548a3..80a46a2 100644
+--- a/plugin.video.xxx-o-dus/service.py
++++ b/plugin.video.xxx-o-dus/service.py
+@@ -51,18 +51,22 @@ try:
+             e = [u for u in c.fetchall()]
+             conn.close()
+             if len(e) < 1:
+-                quit()
++                # nobody monitored yet: keep running so performers added later are still checked
++                if monitor.waitForAbort(60): break
++                continue
+             for (title, link, iconimage) in e:
+                 if (not title in str(lst) ):
+                     #xbmc.log('XXX-O-DUS: Checking %s' % title, xbmc.LOGINFO)
+                     try:
+-                        r = requests.get(link).text
++                        r = requests.get(link, timeout=15).text
+                         # req = urllib2.Request(link)
+                         # response = urllib2.urlopen(req, timeout = 10)
+                         # r=response.read()
+                         # response.close()
+                         if '.m3u8' in r:
+-                            content = re.compile('default_subject:\\s\"([^,]+)",').findall(r)[0]; content = unquote_plus(content)
++                            # the room subject is optional: a missing one used to cancel the alert
++                            subj = re.compile('default_subject:\\s\"([^,]+)",').findall(r)
++                            content = unquote_plus(subj[0]) if subj else 'is online now'
+                             try: content=content.encode('utf-8') if PY2 else content
+                             except: content=content
+                             xbmcgui.Dialog().notification(title + ' online!',content, iconimage, 7500, True)
+@@ -70,9 +74,9 @@ try:
+                             xbmc.sleep(3500)
+                     except: pass
+ 
+-        xbmc.sleep(5000)
++        if monitor.waitForAbort(5): break
+ 
+-        if i >= 2879:
++        if j >= 2879:   # was 'i', which only counts to 59: alerts never re-armed
+             lst = []
+             xbmc.log('XXX-O-DUS: Reseting Checked List', xbmc.LOGINFO)
+         i = (i + 1) % 60
+diff --git a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+index fe4d8b9..02d29d2 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
++++ b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+@@ -163,9 +163,9 @@ def getMonitoring():
+     for (name, url, iconimage) in e:
+         try:
+             iconimage = 'https://roomimg.stream.highwebmedia.com/ri/' + name.lower() + '.jpg'
+-            progress = 100 * int(i)/len(e)
+-            kodi.dp.update(progress,"[COLOR white]Currently Checking " + name + "[/COLOR]","[COLOR white]Checked " + str(i) + " of " + str(len(e)) + "[/COLOR]")
+-            r = requests.get(url, headers=headers)
++            progress = int(100 * i / len(e))   # Kodi 19+: int percent and one message (the 3-line form raised TypeError)
++            kodi.dp.update(progress, "Currently Checking " + name + "\nChecked " + str(i) + " of " + str(len(e)))
++            r = requests.get(url, headers=headers, timeout=15).text  # was the Response object: '.m3u8' in r was always False
+             if '.m3u8' in r:
+                 namelist.append(name)
+                 urllist.append(url)
+diff --git a/script.xxxodus.scrapers/lib/cwm_engines/adapter.py b/script.xxxodus.scrapers/lib/cwm_engines/adapter.py
+new file mode 100644
+index 0000000..64ac45d
+--- /dev/null
++++ b/script.xxxodus.scrapers/lib/cwm_engines/adapter.py
+@@ -0,0 +1,104 @@
++# Runs a Cum With Me site engine (MainContent / GetCats / SearchSite / GetNextPage / ResolveLink)
++# inside XXX-O-DUS: same list items, Next Page, search, favourites and Watch History as native sites.
++import importlib
++import os
++import re
++
++import xbmc
++import xbmcvfs
++import resolveurl
++
++import kodi
++import log_utils
++from resources.lib.modules import utils
++from resources.lib.modules import helper
++
++buildDirectory = utils.buildDir
++SEARCH = 'search::'
++LATEST = 'latest'
++
++
++def _engine(name):
++    return importlib.import_module('cwm_engines.%s' % name).Scraper()
++
++
++def _art(filename, kind):
++    return xbmcvfs.translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/%s' % (filename, kind)))
++
++
++def menu(engine, filename, base_name, content_mode):
++    dirlst = [{'name': 'Latest Videos', 'url': LATEST, 'mode': content_mode, 'icon': _art(filename, 'icon.png'),
++               'fanart': _art(filename, 'fanart.jpg'), 'description': 'Newest videos on %s' % base_name, 'folder': True}]
++    try:
++        for c in _engine(engine).GetCats() or []:
++            if c.get('url'):
++                dirlst.append({'name': c.get('name', ''), 'url': c['url'], 'mode': content_mode, 'icon': _art(filename, 'icon.png'),
++                               'fanart': _art(filename, 'fanart.jpg'), 'description': c.get('name', ''), 'folder': True})
++    except Exception as e:
++        log_utils.log('Could not load categories for %s :: %s' % (base_name, e), log_utils.LOGERROR)
++        kodi.notify(msg='Categories unavailable, showing latest videos only')
++    buildDirectory(dirlst)
++
++
++def content(engine, filename, base_name, content_mode, player_mode, url, searched=False):
++    try:
++        eng = _engine(engine)
++        if url.startswith(SEARCH):
++            items = eng.SearchSite(url[len(SEARCH):])
++        else:
++            items = eng.MainContent('' if url in (LATEST, 'None', None) else url)
++    except Exception as e:
++        if searched: return '0'
++        log_utils.log('Fatal Error in %s:: Error: %s' % (base_name, e), log_utils.LOGERROR)
++        kodi.notify(msg='Fatal Error', duration=4000, sound=True)
++        quit()
++
++    dirlst = []
++    for i in items or []:
++        if not i.get('url'):      # 'Content From X' header rows
++            continue
++        dirlst.append({'name': re.sub(r'\[/?(?:COLOR[^\]]*|B|I)\]', '', i.get('name', '')), 'url': i['url'], 'mode': player_mode,
++                       'icon': i.get('image') or _art(filename, 'icon.png'), 'fanart': _art(filename, 'fanart.jpg'), 'folder': False})
++
++    if searched:
++        if dirlst: buildDirectory(dirlst, stopend=True, isVideo=True)
++        return str(len(dirlst))
++    if not dirlst:
++        kodi.notify(msg='No Content Found')
++        quit()
++
++    nxt = None
++    if not url.startswith(SEARCH):
++        try: nxt = eng.GetNextPage('' if url == LATEST else url)
++        except Exception as e: log_utils.log('Error getting next page for %s :: %s' % (base_name, e), log_utils.LOGERROR)
++    if nxt:
++        buildDirectory(dirlst, stopend=True, isVideo=True)
++        helper.scraper().get_next_page(content_mode, nxt + '|GOT_URL', None, filename)
++    else:
++        buildDirectory(dirlst, isVideo=True)
++
++
++def play(engine, base_name, url, name=None, iconimage=None):
++    from resources.lib.modules import player
++    try:
++        links = [l for l in (_engine(engine).ResolveLink(url) or []) if l.get('url')]
++    except Exception as e:
++        log_utils.log('Could not get links from %s :: %s' % (base_name, e), log_utils.LOGERROR)
++        links = []
++    if not links:
++        kodi.notify(msg='Sorry, no links found')
++        return
++    if len(links) == 1:
++        stream = links[0]['url']
++    else:
++        pick = kodi.dialog.select(name or base_name, [re.sub(r'\[/?(?:COLOR[^\]]*|B|I)\]', '', l.get('name', 'Link')) for l in links])
++        if pick < 0: return
++        stream = links[pick]['url']
++    hmf = resolveurl.HostedMediaFile(stream)
++    if hmf.valid_url():
++        stream = hmf.resolve()
++        if not stream:
++            kodi.notify(msg='Link could not be resolved')
++            return
++    # XXX-O-DUS's player: records Watch History and plays
++    player.play(stream, name or base_name, iconimage, ref=url, site=base_name)

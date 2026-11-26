@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.video.xxx-o-dus" 
 	     name="XXX-O-DUS" 
-	     version="99.00.036"
+	     version="99.00.037"
 	     provider-name="Originally By : Echo Coder :: Revived By @Nemzzy668">
   <requires>
     <!-- Patched Kodi 22 builds of these three live only in the XXX-O-DUS Piers repository; the
          minimum versions stop Kodi from using Stream Army's unpatched 5.x/12.x modules. -->
     <!-- <import addon="xbmc.python" version="2.24.0"/> -->
     <import addon="script.module.echo" version="99.00.002"/>
-    <import addon="script.xxxodus.artwork" version="99.00.002"/>
-    <import addon="script.xxxodus.scrapers" version="99.00.022"/>
+    <import addon="script.xxxodus.artwork" version="99.00.003"/>
+    <import addon="script.xxxodus.scrapers" version="99.00.023"/>
     <import addon="script.module.resolveurl"/>
     <import addon="script.module.resolveurl.xxx"/>
     <import addon="script.module.pyxbmct"/>

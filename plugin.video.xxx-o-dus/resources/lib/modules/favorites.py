@@ -90,6 +90,6 @@ def addFav(mode,name,url,img,_folder):
 def delFav(url):
     conn = sqlite3.connect(favoritesdb)
     c = conn.cursor()
-    c.execute("DELETE FROM favorites WHERE url = '%s'" % url)
+    c.execute("DELETE FROM favorites WHERE url = ?", (url,))
     conn.commit()
     conn.close()

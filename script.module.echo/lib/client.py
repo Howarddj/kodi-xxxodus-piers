@@ -46,10 +46,38 @@ import log_utils
 
 
 def request(url, close=True, redirect=True, error=False, proxy=None, post=None, headers=None, mobile=False, XHR=False, limit=None, referer=None, cookie=None, compression=True, output='', timeout='30'):
+    # Upstream had cut this down to requests.get(url).text and ignored every option, so
+    # output='headers'/'geturl'/'cookie', referer, cookie, post and custom headers silently
+    # returned page HTML instead (downloads always failed with "Error downloading video").
     ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36'
-    headers = {'User-Agent': ua}
-    link = requests.get(url, headers=headers).text
-    return link
+    if mobile:
+        ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
+    hdrs = {'User-Agent': ua}
+    if headers: hdrs.update(headers)
+    if referer: hdrs['Referer'] = referer
+    if cookie: hdrs['Cookie'] = cookie
+    if XHR: hdrs['X-Requested-With'] = 'XMLHttpRequest'
+    if not compression: hdrs['Accept-Encoding'] = 'identity'
+    try: timeout = float(timeout)
+    except (TypeError, ValueError): timeout = 30.0
+    # headers/geturl/cookie must not pull a whole video into memory
+    stream = output in ('headers', 'geturl', 'cookie', 'chunk')
+    kw = dict(headers=hdrs, timeout=timeout, allow_redirects=redirect, stream=stream)
+    if proxy: kw['proxies'] = {'http': proxy, 'https': proxy}
+    r = requests.post(url, data=post, **kw) if post is not None else requests.get(url, **kw)
+    try:
+        if error is False and r.status_code >= 400 and output not in ('headers', 'geturl', 'cookie'):
+            log_utils.log('client.request %s -> HTTP %s' % (url, r.status_code), log_utils.LOGDEBUG)
+        if output == 'headers': return r.headers
+        if output == 'geturl': return r.url
+        if output == 'cookie': return '; '.join('%s=%s' % (k, v) for k, v in r.cookies.items())
+        if output == 'chunk': return next(r.iter_content(16 * 1024), b'').decode('utf-8', 'replace')
+        text = r.text
+        if limit: text = text[:int(limit) * 1024]
+        if output == 'extended': return (text, r.status_code, r.headers, hdrs, '; '.join('%s=%s' % (k, v) for k, v in r.cookies.items()))
+        return text
+    finally:
+        r.close()
     # try:
         # handlers = []
 

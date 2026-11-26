@@ -176,7 +176,7 @@ def delTerm(url):
             refresh = True
         conn = sqlite3.connect(searchdb)
         c = conn.cursor()
-        c.execute("DELETE FROM terms WHERE term = '%s'" % url)
+        c.execute("DELETE FROM terms WHERE term = ?", (url,))
         conn.commit()
         conn.close()
     except: pass

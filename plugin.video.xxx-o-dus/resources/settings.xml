@@ -9,7 +9,7 @@
         <setting id="search_setting" type="bool" label="[COLOR white]Search History:[/COLOR]" default="true"/>
         <setting id="history_setting" type="bool" label="[COLOR white]Log History:[/COLOR]" default="true"/>
         <setting type="lsep" label="[COLOR dodgerblue][B]Download Settings[/B][/COLOR]"/>
-        <setting id="download_location" type="folder" label="[COLOR white]Download Location:[/COLOR]" default="special://home\userdata\addon_data\plugin.video.xxx-o-dus\Downloads\"/>
+        <setting id="download_location" type="folder" label="[COLOR white]Download Location:[/COLOR]" default="special://profile/addon_data/plugin.video.xxx-o-dus/downloads/"/>
         <setting type="lsep" label="[COLOR dodgerblue][B]View Types[/B][/COLOR]"/>
         <setting type="lsep" label="[COLOR white]You can save view modes by changing the view in the addon[/COLOR]"/>
         <setting type="lsep" label="[COLOR white]and selecting to set the view mode in the context menu.[/COLOR]"/>

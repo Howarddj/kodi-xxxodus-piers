@@ -6,7 +6,7 @@
     <setting id="chaturbate_view" default="true">0</setting>
     <setting id="dev_debug" default="true">false</setting>
     <setting id="dev_scrapers" default="true">false</setting>
-    <setting id="download_location" default="true">special://home\userdata\addon_data\plugin.video.xxx-o-dus\Downloads\</setting>
+    <setting id="download_location" default="true">special://profile/addon_data/plugin.video.xxx-o-dus/downloads/</setting>
     <setting id="history_setting">true</setting>
     <setting id="list_view" default="true">0</setting>
     <setting id="picture_view" default="true">0</setting>

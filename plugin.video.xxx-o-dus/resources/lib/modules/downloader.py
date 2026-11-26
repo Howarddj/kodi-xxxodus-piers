@@ -38,6 +38,7 @@ if PY2:
     urlretrieve = MyOpener().retrieve
     urlopen = MyOpener().open
     download_location   = kodi.get_setting("download_location")
+    if os.sep == '/': download_location = download_location.replace('\\', '/')  # old Windows-style default made a folder literally named 'home\userdata\...' on Linux
     download_folder = translatePath(download_location)
 
     databases = translatePath(os.path.join(kodi.datafolder, 'databases'))
@@ -61,6 +62,7 @@ else:
     urlretrieve = MyOpener().retrieve
     urlopen = MyOpener().open
     download_location   = kodi.get_setting("download_location")
+    if os.sep == '/': download_location = download_location.replace('\\', '/')  # old Windows-style default made a folder literally named 'home\userdata\...' on Linux
     download_folder = translatePath(download_location)
 
     databases = translatePath(os.path.join(kodi.datafolder, 'databases'))
@@ -109,7 +111,7 @@ def getDownloads():
             try:
                 find_string = find_string.replace('.mp4','')
                 find_string = kodi.stripColor(find_string)
-                c.execute("SELECT image FROM downloads WHERE name = '%s'" % find_string)                       
+                c.execute("SELECT image FROM downloads WHERE name = ?", (find_string,))                       
                 icon = c.fetchone()[0]
             except: icon = None
         else: icon = i[3]
@@ -140,7 +142,7 @@ def removeDownload(url, name):
             name = kodi.stripColor(name)
             conn = sqlite3.connect(downloaddb)
             c = conn.cursor()
-            c.execute("DELETE FROM downloads WHERE name = '%s'" % name)
+            c.execute("DELETE FROM downloads WHERE name = ?", (name,))
             conn.commit()
             conn.close()
         except: pass

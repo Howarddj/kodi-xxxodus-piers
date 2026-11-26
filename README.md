@@ -11,15 +11,15 @@ A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, pa
 3. **Add-ons → Install from repository → XXX-O-DUS Piers Repository → Video add-ons → XXX-O-DUS**.
    Kodi installs all dependencies automatically.
 
-If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.035 as an update.
+If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.036 as an update.
 
 ## What's in the repository
 
 | Add-on | Version | Source | Changes |
 |---|---|---|---|
-| `plugin.video.xxx-o-dus` | 99.00.035 | Stream Army 5.00.028 | Patched (see below) |
-| `script.module.echo` | 99.00.001 | Stream Army 5.00.000 | Patched |
-| `script.xxxodus.scrapers` | 99.00.021 | Stream Army 5.00.020 | Patched |
+| `plugin.video.xxx-o-dus` | 99.00.036 | Stream Army 5.00.028 | Patched (see below) |
+| `script.module.echo` | 99.00.002 | Stream Army 5.00.000 | Patched |
+| `script.xxxodus.scrapers` | 99.00.022 | Stream Army 5.00.020 | Patched |
 | `script.module.nemzzy` | 99.00.000 | Stream Army 12.00.000 | Patched |
 | `script.xxxodus.artwork` | 99.00.002 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |
@@ -50,6 +50,14 @@ The patched add-ons use version 99 so Stream Army releases never replace them, a
   * the start-up prompt to install `repository.StreamArmy`
   * the Stream Army registration and usage ping, and the update notifications, in `script.module.nemzzy`
   * the online part of the "Check XXX-O-DUS Health" screen, which now only shows installed versions
+* **Found by a sandbox test run** (a stub Kodi 23 on Python 3.14 that opens every menu, search and tool, with sites down and with sites returning blank pages):
+  * listings that stopped with `quit()` after a site error now tell Kodi the listing failed, so Kodi returns to the previous screen instead of a spinner and a blank list
+  * `echo`'s `client.request()` ignored every option (`output='headers'`, `geturl`, `cookie`, `referer`, custom headers), so downloads and some resolvers always failed
+  * Watch History was never written for sites that play straight from the resolver
+  * the Chaturbate monitor database was written to `plugin.video.XXX-O-DUS`, a different folder from the one it is read from on Linux
+  * SQL deletes built by string formatting failed on names containing an apostrophe
+  * the default download folder was a Windows path
+  * `XBMC.`-prefixed built-ins, which Kodi 19+ ignores
 * **Kept:** the first-run 18+ confirmation and the optional parental-control lock.
 * **Readable source:** the obfuscated `default.py`, `menus.py` and `lover.py` were replaced with readable source.
 

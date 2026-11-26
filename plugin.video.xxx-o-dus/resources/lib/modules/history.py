@@ -86,7 +86,7 @@ def delEntry(url):
             refresh = True
         conn = sqlite3.connect(historydb)
         c = conn.cursor()
-        c.execute("DELETE FROM history WHERE url = '%s'" % url)
+        c.execute("DELETE FROM history WHERE url = ?", (url,))  # quotes in a URL broke the old string query
         conn.commit()
         conn.close()
     except: pass

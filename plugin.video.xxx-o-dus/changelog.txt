@@ -1,6 +1,24 @@
 [COLOR pink]Welcome To XXX-O-DUS[/COLOR]
 
-[COLOR aqua]XXXODUS : 99.00.035 (Kodi 22 / 23 patched build)[/COLOR]
+[COLOR aqua]XXXODUS : 99.00.036 (Kodi 22 / 23 patched build)[/COLOR]
+
+[COLOR aqua]SCRAPERS : 99.00.022[/COLOR]
+
+
+[COLOR yellow]FIXED (sandbox test pass)[/COLOR]
+[COLOR white]A site that is down or changed no longer leaves a spinner and a blank screen: Kodi goes back to the previous list[/COLOR]
+[COLOR white]Selecting a ----- separator row raised an error[/COLOR]
+[COLOR white]Watch History stayed empty for most sites (Xvideos, Xnxx, Chaturbate and others)[/COLOR]
+[COLOR white]Chaturbate Monitored Performers crashed on Linux (data saved to the wrong folder)[/COLOR]
+[COLOR white]Chaturbate Follow User never found anyone[/COLOR]
+[COLOR white]Playing a video from a site that is down showed a traceback instead of a message[/COLOR]
+[COLOR white]Removing favourites, history, search terms, downloads or performers with an apostrophe in the name failed[/COLOR]
+[COLOR white]Downloads work again for sites that serve plain video files (streaming-only sites cannot be downloaded)[/COLOR]
+[COLOR white]Default download folder was a Windows path that made a strange folder on Linux and Android[/COLOR]
+[COLOR white]Refresh and notification commands used the XBMC. prefix that Kodi 19+ ignores[/COLOR]
+
+
+[COLOR aqua]XXXODUS : 99.00.035[/COLOR]
 
 [COLOR aqua]SCRAPERS : 99.00.021[/COLOR]
 

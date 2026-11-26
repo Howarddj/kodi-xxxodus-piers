@@ -33,7 +33,7 @@ def resolve_url(url, name=None, iconimage=None, pattern=None):
     try: url,site = url.split('|SPLIT|')
     except: 
         site = 'Unknown'
-        log_utils.log('Error getting site information from :: %s' % (url), log_utils.LOGERROR)
+        log_utils.log('No site tag on :: %s' % (url), log_utils.LOGDEBUG)  # most scrapers never add one
 
     if not name: name = 'Unknown'
     if not iconimage: iconimage = kodi.addonicon
@@ -49,6 +49,16 @@ def resolve_url(url, name=None, iconimage=None, pattern=None):
     u = None
     url2 = url
     log_utils.log('Sending %s to XXX Resolver' % (url), log_utils.LOGNOTICE)
+    # Blacklisted sites (xvideos, xnxx, chaturbate, ...) play inside Blacklistcheck and stop there,
+    # so they never reached play() and Watch History stayed empty. Record the visit first.
+    if kodi.get_setting('history_setting') == 'true':
+        try:
+            if site == 'Unknown':
+                host = urlparse(url).netloc.lower()
+                site = re.sub(r'^www\.', '', host).split('.')[0] or 'Unknown'
+            history.addHistory(name or 'Unknown', url, site, iconimage or kodi.addonicon)
+        except Exception as e:
+            log_utils.log('Could not record history for %s :: %s' % (url, e), log_utils.LOGERROR)
     blacklist.Blacklistcheck(url)
     if resolveurl.HostedMediaFile(url).valid_url():
         log_utils.log('%s is a valid SMU resolvable URL. Attempting to resolve.' % (url), log_utils.LOGNOTICE)

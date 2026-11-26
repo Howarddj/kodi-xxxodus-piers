@@ -176,7 +176,7 @@ def delEntry(passwd):
 
     conn = sqlite3.connect(parentaldb)
     c = conn.cursor()
-    c.execute("DELETE FROM parental WHERE password = '%s'" % passwd)
+    c.execute("DELETE FROM parental WHERE password = ?", (passwd,))
     conn.commit()
     conn.close()
     

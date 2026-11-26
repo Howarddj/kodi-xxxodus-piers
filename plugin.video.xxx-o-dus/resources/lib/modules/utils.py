@@ -192,7 +192,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
             if isDownloadable:
                 dwnld = '%s?url=%s&mode=%s&name=%s&iconimage=%s' \
                 % (sysaddon,quote_plus(url),str('26'),name,quote_plus(thumb))
-                cm.append(('Download Video ( [COLOR red]Not Working Kodi19[/COLOR] )', 'RunPlugin('+dwnld+')'))
+                cm.append(('Download Video', 'RunPlugin('+dwnld+')'))
             if isDownloaded:
                 rmdwnld = '%s?url=%s&mode=%s&name=%s' \
                 % (sysaddon,quote_plus(url),str('28'),name)

@@ -44,7 +44,41 @@ def main(argv=None):
         utils.url_dispatcher.showmodes()
 
 
+# Kodi waits for every folder (and playable item) it opens until the add-on
+# calls endOfDirectory/setResolvedUrl. Scrapers stop with quit() after a site
+# error, which left Kodi showing a spinner and then a blank list. Track whether
+# the listing was answered and, if not, report failure so Kodi goes back.
+_answered = [False]
+
+
+def _track(fn):
+    def wrapper(*args, **kwargs):
+        _answered[0] = True
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+xbmcplugin.endOfDirectory = _track(xbmcplugin.endOfDirectory)
+xbmcplugin.setResolvedUrl = _track(xbmcplugin.setResolvedUrl)
+
+
+def _handle():
+    try: return int(sys.argv[1])
+    except (IndexError, ValueError): return -1
+
+
+@utils.url_dispatcher.register('999')
+def _separator():
+    pass  # '-----' separator rows; selecting one does nothing
+
+
 if __name__ == '__main__':
-    firstStart.run()
-    parentalCheck()
-    sys.exit(main())
+    try:
+        firstStart.run()
+        parentalCheck()
+        main()
+    except SystemExit:
+        pass
+    finally:
+        if _handle() >= 0 and not _answered[0]:
+            xbmcplugin.endOfDirectory(_handle(), succeeded=False, cacheToDisc=False)

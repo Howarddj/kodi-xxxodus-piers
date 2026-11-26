@@ -2,15 +2,15 @@
 <addons>
 <addon id="plugin.video.xxx-o-dus" 
 	     name="XXX-O-DUS" 
-	     version="99.00.035"
+	     version="99.00.036"
 	     provider-name="Originally By : Echo Coder :: Revived By @Nemzzy668">
   <requires>
     <!-- Patched Kodi 22 builds of these three live only in the XXX-O-DUS Piers repository; the
          minimum versions stop Kodi from using Stream Army's unpatched 5.x/12.x modules. -->
     <!-- <import addon="xbmc.python" version="2.24.0"/> -->
-    <import addon="script.module.echo" version="99.00.001"/>
+    <import addon="script.module.echo" version="99.00.002"/>
     <import addon="script.xxxodus.artwork" version="99.00.002"/>
-    <import addon="script.xxxodus.scrapers" version="99.00.021"/>
+    <import addon="script.xxxodus.scrapers" version="99.00.022"/>
     <import addon="script.module.resolveurl"/>
     <import addon="script.module.resolveurl.xxx"/>
     <import addon="script.module.pyxbmct"/>
@@ -75,7 +75,7 @@
   </extension>
 </addon>
 
-<addon id="script.module.echo" name="Echo Libraries" version="99.00.001" provider-name="Echo Coder">
+<addon id="script.module.echo" name="Echo Libraries" version="99.00.002" provider-name="Echo Coder">
 	<requires>
 		<!-- <import addon="xbmc.python" version="2.1.0" /> -->
 		<import addon="script.module.requests" />
@@ -164,7 +164,7 @@
 	</extension>
 </addon>
 
-<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="99.00.021" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
+<addon id="script.xxxodus.scrapers" name="XXXODUS Scrapers" version="99.00.022" provider-name="Original Echo Coder // Maintained NOW by @Nemzzy668">
 	<requires>
 		<!-- <import addon="xbmc.python" version="2.24.0" /> -->
 		<import addon="script.module.requests" />

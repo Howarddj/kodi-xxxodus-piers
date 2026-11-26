@@ -209,7 +209,7 @@ def notify(header=None, msg='', duration=2000, sound=None, icon_path=None):
     try:
         xbmcgui.Dialog().notification(header, msg, icon_path, duration, sound)
     except:
-        builtin = "XBMC.Notification(%s,%s, %s, %s)" % (header, msg, duration, icon_path)
+        builtin = "Notification(%s,%s, %s, %s)" % (header, msg, duration, icon_path)
         xbmc.executebuiltin(builtin)
     
 def close_all():
@@ -267,7 +267,7 @@ def set_view(content, set_view=False, set_sort=False):
         xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_GENRE)
 
 def refresh_container():
-    xbmc.executebuiltin("XBMC.Container.Refresh")
+    xbmc.executebuiltin("Container.Refresh")
     
 def update_container(url):
     xbmc.executebuiltin('Container.Update(%s)' % (url))

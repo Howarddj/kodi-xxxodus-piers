@@ -28,7 +28,7 @@ search_tag   = 0
 chaturbate_icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', 'main/chaturbate.png'))
 
 import sqlite3
-databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.XXX-O-DUS', 'databases'))
+databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.xxx-o-dus', 'databases'))  # was XXX-O-DUS: a different folder on Linux
 chaturbatedb = translatePath(os.path.join(databases, 'chaturbate.db'))
 
 if ( not os.path.exists(databases)): os.makedirs(databases)
@@ -250,7 +250,7 @@ def followUser():
             xbmc.executebuiltin("Dialog.Close(busydialog)")
             kodi.dialog.ok(kodi.get_name(), 'We could not find any model matching the username ' + user + '. Please check the username and try again.')
             quit()
-        if not 'Bio and Free Webcam' in r:
+        if not 'Bio and Free Webcam' in r.text:
                 xbmc.executebuiltin("Dialog.Close(busydialog)")
                 dialog.ok(kodi.get_name(), 'We could not find any model matching the username ' + user + '. Please check the username and try again.')
                 quit()
@@ -292,7 +292,7 @@ def addPerformer(name,url,img):
 def delPerformer(url):
     conn = sqlite3.connect(chaturbatedb)
     c = conn.cursor()
-    c.execute("DELETE FROM chaturbate WHERE url = '%s'" % url)
+    c.execute("DELETE FROM chaturbate WHERE url = ?", (url,))
     conn.commit()
     conn.close()
  

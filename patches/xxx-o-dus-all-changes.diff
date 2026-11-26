@@ -1863,3 +1863,494 @@ diff -ruN --strip-trailing-cr -x __pycache__ script.module.nemzzy/neupop.py b/sc
  from .tasks import (
      NoCaptchaTask,
      NoCaptchaTaskProxylessTask,
+
+
+# ---- 99.00.036: fixes from the sandbox test run ----
+diff --git a/plugin.video.xxx-o-dus/default.py b/plugin.video.xxx-o-dus/default.py
+index 0001e2f..6426c3c 100644
+--- a/plugin.video.xxx-o-dus/default.py
++++ b/plugin.video.xxx-o-dus/default.py
+@@ -44,7 +44,41 @@ def main(argv=None):
+         utils.url_dispatcher.showmodes()
+ 
+ 
++# Kodi waits for every folder (and playable item) it opens until the add-on
++# calls endOfDirectory/setResolvedUrl. Scrapers stop with quit() after a site
++# error, which left Kodi showing a spinner and then a blank list. Track whether
++# the listing was answered and, if not, report failure so Kodi goes back.
++_answered = [False]
++
++
++def _track(fn):
++    def wrapper(*args, **kwargs):
++        _answered[0] = True
++        return fn(*args, **kwargs)
++    return wrapper
++
++
++xbmcplugin.endOfDirectory = _track(xbmcplugin.endOfDirectory)
++xbmcplugin.setResolvedUrl = _track(xbmcplugin.setResolvedUrl)
++
++
++def _handle():
++    try: return int(sys.argv[1])
++    except (IndexError, ValueError): return -1
++
++
++@utils.url_dispatcher.register('999')
++def _separator():
++    pass  # '-----' separator rows; selecting one does nothing
++
++
+ if __name__ == '__main__':
+-    firstStart.run()
+-    parentalCheck()
+-    sys.exit(main())
++    try:
++        firstStart.run()
++        parentalCheck()
++        main()
++    except SystemExit:
++        pass
++    finally:
++        if _handle() >= 0 and not _answered[0]:
++            xbmcplugin.endOfDirectory(_handle(), succeeded=False, cacheToDisc=False)
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/blacklist.py b/plugin.video.xxx-o-dus/resources/lib/modules/blacklist.py
+index 35b753e..986d9bb 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/blacklist.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/blacklist.py
+@@ -11,127 +11,136 @@ else:
+     from resources.lib.modules import linkfinder
+ adultresolver = adultresolver.streamer()
+ dialog = xbmcgui.Dialog()
++def _try(fn, url):
++    # a site that is down raised straight out of the player (traceback, no message)
++    try:
++        fn(url)
++    except Exception as e:
++        xbmc.log('XXX-O-DUS: could not resolve %s :: %s' % (url, e), xbmc.LOGERROR)
++        dialog.notification('XXX-O-DUS', 'Could not reach the site for this video', xbmcgui.NOTIFICATION_ERROR, 4000)
++
++
+ def Blacklistcheck(url):
+     dialog.notification('XXX-O-DUS', '[COLOR yellow]Checking For Links Now, Be Patient[/COLOR]', xbmcgui.NOTIFICATION_INFO, 2500)
+     if 'hclips.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'xvideos.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'youjizz.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'chaturbate.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'zzcartoon.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'daftporn.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'watchxxxfreeinhd.com' in url:
+-        linkfinder.find(url)
++        _try(linkfinder.find, url)
+         quit()
+     elif 'youngpornvideos.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'freeomovie.info' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'javhihi.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'xnxx.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'txxx.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'vrsumo.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'anysex.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'pandamovie.info' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'streamingporn.xyz' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif '3movs.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'watchmygf.me' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'vrsmash.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif '4tube.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'justporno.tv' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'spankbang.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'teenpornsite.net' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'watchpornfree.info' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'pornhd.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'hqporner.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'porn.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'porndig.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'youporn.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'tube8.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'pornrox.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'collectionofbestporn.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'ghettotube.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'siska.video' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'overthumbs.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'fapality.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'xxxdan.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'motherless.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'redtube.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     elif 'adult-tv-channels.com' in url:
+-        adultresolver.resolve(url)
++        _try(adultresolver.resolve, url)
+         quit()
+     else:
+         return url
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py b/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py
+index bcc35f7..e81f07f 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/downloader.py
+@@ -38,6 +38,7 @@ if PY2:
+     urlretrieve = MyOpener().retrieve
+     urlopen = MyOpener().open
+     download_location   = kodi.get_setting("download_location")
++    if os.sep == '/': download_location = download_location.replace('\\', '/')  # old Windows-style default made a folder literally named 'home\userdata\...' on Linux
+     download_folder = translatePath(download_location)
+ 
+     databases = translatePath(os.path.join(kodi.datafolder, 'databases'))
+@@ -61,6 +62,7 @@ else:
+     urlretrieve = MyOpener().retrieve
+     urlopen = MyOpener().open
+     download_location   = kodi.get_setting("download_location")
++    if os.sep == '/': download_location = download_location.replace('\\', '/')  # old Windows-style default made a folder literally named 'home\userdata\...' on Linux
+     download_folder = translatePath(download_location)
+ 
+     databases = translatePath(os.path.join(kodi.datafolder, 'databases'))
+@@ -109,7 +111,7 @@ def getDownloads():
+             try:
+                 find_string = find_string.replace('.mp4','')
+                 find_string = kodi.stripColor(find_string)
+-                c.execute("SELECT image FROM downloads WHERE name = '%s'" % find_string)                       
++                c.execute("SELECT image FROM downloads WHERE name = ?", (find_string,))                       
+                 icon = c.fetchone()[0]
+             except: icon = None
+         else: icon = i[3]
+@@ -140,7 +142,7 @@ def removeDownload(url, name):
+             name = kodi.stripColor(name)
+             conn = sqlite3.connect(downloaddb)
+             c = conn.cursor()
+-            c.execute("DELETE FROM downloads WHERE name = '%s'" % name)
++            c.execute("DELETE FROM downloads WHERE name = ?", (name,))
+             conn.commit()
+             conn.close()
+         except: pass
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/favorites.py b/plugin.video.xxx-o-dus/resources/lib/modules/favorites.py
+index 40d4e4c..cecd253 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/favorites.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/favorites.py
+@@ -90,6 +90,6 @@ def addFav(mode,name,url,img,_folder):
+ def delFav(url):
+     conn = sqlite3.connect(favoritesdb)
+     c = conn.cursor()
+-    c.execute("DELETE FROM favorites WHERE url = '%s'" % url)
++    c.execute("DELETE FROM favorites WHERE url = ?", (url,))
+     conn.commit()
+     conn.close()
+\ No newline at end of file
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/history.py b/plugin.video.xxx-o-dus/resources/lib/modules/history.py
+index 79c9bf2..d1b3866 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/history.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/history.py
+@@ -86,7 +86,7 @@ def delEntry(url):
+             refresh = True
+         conn = sqlite3.connect(historydb)
+         c = conn.cursor()
+-        c.execute("DELETE FROM history WHERE url = '%s'" % url)
++        c.execute("DELETE FROM history WHERE url = ?", (url,))  # quotes in a URL broke the old string query
+         conn.commit()
+         conn.close()
+     except: pass
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/parental.py b/plugin.video.xxx-o-dus/resources/lib/modules/parental.py
+index 75a660f..caea2dc 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/parental.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/parental.py
+@@ -176,7 +176,7 @@ def delEntry(passwd):
+ 
+     conn = sqlite3.connect(parentaldb)
+     c = conn.cursor()
+-    c.execute("DELETE FROM parental WHERE password = '%s'" % passwd)
++    c.execute("DELETE FROM parental WHERE password = ?", (passwd,))
+     conn.commit()
+     conn.close()
+     
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/player.py b/plugin.video.xxx-o-dus/resources/lib/modules/player.py
+index 6cdc69b..db0f989 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/player.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/player.py
+@@ -33,7 +33,7 @@ def resolve_url(url, name=None, iconimage=None, pattern=None):
+     try: url,site = url.split('|SPLIT|')
+     except: 
+         site = 'Unknown'
+-        log_utils.log('Error getting site information from :: %s' % (url), log_utils.LOGERROR)
++        log_utils.log('No site tag on :: %s' % (url), log_utils.LOGDEBUG)  # most scrapers never add one
+ 
+     if not name: name = 'Unknown'
+     if not iconimage: iconimage = kodi.addonicon
+@@ -49,6 +49,16 @@ def resolve_url(url, name=None, iconimage=None, pattern=None):
+     u = None
+     url2 = url
+     log_utils.log('Sending %s to XXX Resolver' % (url), log_utils.LOGNOTICE)
++    # Blacklisted sites (xvideos, xnxx, chaturbate, ...) play inside Blacklistcheck and stop there,
++    # so they never reached play() and Watch History stayed empty. Record the visit first.
++    if kodi.get_setting('history_setting') == 'true':
++        try:
++            if site == 'Unknown':
++                host = urlparse(url).netloc.lower()
++                site = re.sub(r'^www\.', '', host).split('.')[0] or 'Unknown'
++            history.addHistory(name or 'Unknown', url, site, iconimage or kodi.addonicon)
++        except Exception as e:
++            log_utils.log('Could not record history for %s :: %s' % (url, e), log_utils.LOGERROR)
+     blacklist.Blacklistcheck(url)
+     if resolveurl.HostedMediaFile(url).valid_url():
+         log_utils.log('%s is a valid SMU resolvable URL. Attempting to resolve.' % (url), log_utils.LOGNOTICE)
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/search.py b/plugin.video.xxx-o-dus/resources/lib/modules/search.py
+index adc17fb..ac2216b 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/search.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/search.py
+@@ -176,7 +176,7 @@ def delTerm(url):
+             refresh = True
+         conn = sqlite3.connect(searchdb)
+         c = conn.cursor()
+-        c.execute("DELETE FROM terms WHERE term = '%s'" % url)
++        c.execute("DELETE FROM terms WHERE term = ?", (url,))
+         conn.commit()
+         conn.close()
+     except: pass
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+index 53a0dc7..aee1d57 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+@@ -192,7 +192,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
+             if isDownloadable:
+                 dwnld = '%s?url=%s&mode=%s&name=%s&iconimage=%s' \
+                 % (sysaddon,quote_plus(url),str('26'),name,quote_plus(thumb))
+-                cm.append(('Download Video ( [COLOR red]Not Working Kodi19[/COLOR] )', 'RunPlugin('+dwnld+')'))
++                cm.append(('Download Video', 'RunPlugin('+dwnld+')'))
+             if isDownloaded:
+                 rmdwnld = '%s?url=%s&mode=%s&name=%s' \
+                 % (sysaddon,quote_plus(url),str('28'),name)
+diff --git a/plugin.video.xxx-o-dus/resources/settings.xml b/plugin.video.xxx-o-dus/resources/settings.xml
+index ccf2da1..dc8db74 100644
+--- a/plugin.video.xxx-o-dus/resources/settings.xml
++++ b/plugin.video.xxx-o-dus/resources/settings.xml
+@@ -9,7 +9,7 @@
+         <setting id="search_setting" type="bool" label="[COLOR white]Search History:[/COLOR]" default="true"/>
+         <setting id="history_setting" type="bool" label="[COLOR white]Log History:[/COLOR]" default="true"/>
+         <setting type="lsep" label="[COLOR dodgerblue][B]Download Settings[/B][/COLOR]"/>
+-        <setting id="download_location" type="folder" label="[COLOR white]Download Location:[/COLOR]" default="special://home\userdata\addon_data\plugin.video.xxx-o-dus\Downloads\"/>
++        <setting id="download_location" type="folder" label="[COLOR white]Download Location:[/COLOR]" default="special://profile/addon_data/plugin.video.xxx-o-dus/downloads/"/>
+         <setting type="lsep" label="[COLOR dodgerblue][B]View Types[/B][/COLOR]"/>
+         <setting type="lsep" label="[COLOR white]You can save view modes by changing the view in the addon[/COLOR]"/>
+         <setting type="lsep" label="[COLOR white]and selecting to set the view mode in the context menu.[/COLOR]"/>
+diff --git a/plugin.video.xxx-o-dus/resources/settings_default.xml b/plugin.video.xxx-o-dus/resources/settings_default.xml
+index 7ee9400..fa7be2e 100644
+--- a/plugin.video.xxx-o-dus/resources/settings_default.xml
++++ b/plugin.video.xxx-o-dus/resources/settings_default.xml
+@@ -6,7 +6,7 @@
+     <setting id="chaturbate_view" default="true">0</setting>
+     <setting id="dev_debug" default="true">false</setting>
+     <setting id="dev_scrapers" default="true">false</setting>
+-    <setting id="download_location" default="true">special://home\userdata\addon_data\plugin.video.xxx-o-dus\Downloads\</setting>
++    <setting id="download_location" default="true">special://profile/addon_data/plugin.video.xxx-o-dus/downloads/</setting>
+     <setting id="history_setting">true</setting>
+     <setting id="list_view" default="true">0</setting>
+     <setting id="picture_view" default="true">0</setting>
+diff --git a/script.module.echo/lib/client.py b/script.module.echo/lib/client.py
+index ff20aa0..030290d 100644
+--- a/script.module.echo/lib/client.py
++++ b/script.module.echo/lib/client.py
+@@ -46,10 +46,38 @@ import log_utils
+ 
+ 
+ def request(url, close=True, redirect=True, error=False, proxy=None, post=None, headers=None, mobile=False, XHR=False, limit=None, referer=None, cookie=None, compression=True, output='', timeout='30'):
++    # Upstream had cut this down to requests.get(url).text and ignored every option, so
++    # output='headers'/'geturl'/'cookie', referer, cookie, post and custom headers silently
++    # returned page HTML instead (downloads always failed with "Error downloading video").
+     ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36'
+-    headers = {'User-Agent': ua}
+-    link = requests.get(url, headers=headers).text
+-    return link
++    if mobile:
++        ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1'
++    hdrs = {'User-Agent': ua}
++    if headers: hdrs.update(headers)
++    if referer: hdrs['Referer'] = referer
++    if cookie: hdrs['Cookie'] = cookie
++    if XHR: hdrs['X-Requested-With'] = 'XMLHttpRequest'
++    if not compression: hdrs['Accept-Encoding'] = 'identity'
++    try: timeout = float(timeout)
++    except (TypeError, ValueError): timeout = 30.0
++    # headers/geturl/cookie must not pull a whole video into memory
++    stream = output in ('headers', 'geturl', 'cookie', 'chunk')
++    kw = dict(headers=hdrs, timeout=timeout, allow_redirects=redirect, stream=stream)
++    if proxy: kw['proxies'] = {'http': proxy, 'https': proxy}
++    r = requests.post(url, data=post, **kw) if post is not None else requests.get(url, **kw)
++    try:
++        if error is False and r.status_code >= 400 and output not in ('headers', 'geturl', 'cookie'):
++            log_utils.log('client.request %s -> HTTP %s' % (url, r.status_code), log_utils.LOGDEBUG)
++        if output == 'headers': return r.headers
++        if output == 'geturl': return r.url
++        if output == 'cookie': return '; '.join('%s=%s' % (k, v) for k, v in r.cookies.items())
++        if output == 'chunk': return next(r.iter_content(16 * 1024), b'').decode('utf-8', 'replace')
++        text = r.text
++        if limit: text = text[:int(limit) * 1024]
++        if output == 'extended': return (text, r.status_code, r.headers, hdrs, '; '.join('%s=%s' % (k, v) for k, v in r.cookies.items()))
++        return text
++    finally:
++        r.close()
+     # try:
+         # handlers = []
+ 
+diff --git a/script.module.echo/lib/kodi.py b/script.module.echo/lib/kodi.py
+index 4dfc2dd..a92edd5 100644
+--- a/script.module.echo/lib/kodi.py
++++ b/script.module.echo/lib/kodi.py
+@@ -209,7 +209,7 @@ def notify(header=None, msg='', duration=2000, sound=None, icon_path=None):
+     try:
+         xbmcgui.Dialog().notification(header, msg, icon_path, duration, sound)
+     except:
+-        builtin = "XBMC.Notification(%s,%s, %s, %s)" % (header, msg, duration, icon_path)
++        builtin = "Notification(%s,%s, %s, %s)" % (header, msg, duration, icon_path)
+         xbmc.executebuiltin(builtin)
+     
+ def close_all():
+@@ -267,7 +267,7 @@ def set_view(content, set_view=False, set_sort=False):
+         xbmcplugin.addSortMethod(handle=int(sys.argv[1]), sortMethod=xbmcplugin.SORT_METHOD_GENRE)
+ 
+ def refresh_container():
+-    xbmc.executebuiltin("XBMC.Container.Refresh")
++    xbmc.executebuiltin("Container.Refresh")
+     
+ def update_container(url):
+     xbmc.executebuiltin('Container.Update(%s)' % (url))
+diff --git a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+index 6b4d82c..fe4d8b9 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
++++ b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+@@ -28,7 +28,7 @@ search_tag   = 0
+ chaturbate_icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork/resources/art/', 'main/chaturbate.png'))
+ 
+ import sqlite3
+-databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.XXX-O-DUS', 'databases'))
++databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.xxx-o-dus', 'databases'))  # was XXX-O-DUS: a different folder on Linux
+ chaturbatedb = translatePath(os.path.join(databases, 'chaturbate.db'))
+ 
+ if ( not os.path.exists(databases)): os.makedirs(databases)
+@@ -250,7 +250,7 @@ def followUser():
+             xbmc.executebuiltin("Dialog.Close(busydialog)")
+             kodi.dialog.ok(kodi.get_name(), 'We could not find any model matching the username ' + user + '. Please check the username and try again.')
+             quit()
+-        if not 'Bio and Free Webcam' in r:
++        if not 'Bio and Free Webcam' in r.text:
+                 xbmc.executebuiltin("Dialog.Close(busydialog)")
+                 dialog.ok(kodi.get_name(), 'We could not find any model matching the username ' + user + '. Please check the username and try again.')
+                 quit()
+@@ -292,7 +292,7 @@ def addPerformer(name,url,img):
+ def delPerformer(url):
+     conn = sqlite3.connect(chaturbatedb)
+     c = conn.cursor()
+-    c.execute("DELETE FROM chaturbate WHERE url = '%s'" % url)
++    c.execute("DELETE FROM chaturbate WHERE url = ?", (url,))
+     conn.commit()
+     conn.close()
+  

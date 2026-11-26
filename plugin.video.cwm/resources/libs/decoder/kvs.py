@@ -1,3 +1,4 @@
+import xbmc
 import xbmcgui
 dialog = xbmcgui.Dialog()
 import time

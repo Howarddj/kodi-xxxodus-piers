@@ -1,6 +1,6 @@
-# XXX-O-DUS for Kodi 22 "Piers"
+# XXX-O-DUS and Cum With Me for Kodi 22 "Piers"
 
-A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, patched to run on Kodi 22 (Python 3.14).
+A Kodi repository with XXX-O-DUS, Cum With Me and every non-official add-on they depend on, patched to run on Kodi 22 / 23 (Python 3.14).
 
 ## Install
 
@@ -10,6 +10,7 @@ A Kodi repository with XXX-O-DUS and every non-official add-on it depends on, pa
 2. **Add-ons → Install from zip file** → pick `repository.xxxodus.piers-1.0.0.zip`.
 3. **Add-ons → Install from repository → XXX-O-DUS Piers Repository → Video add-ons → XXX-O-DUS**.
    Kodi installs all dependencies automatically.
+   Cum With Me is in the same place: **Video add-ons → Cum With Me**.
 
 If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.036 as an update.
 
@@ -22,6 +23,8 @@ If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.
 | `script.xxxodus.scrapers` | 99.00.022 | Stream Army 5.00.020 | Patched |
 | `script.module.nemzzy` | 99.00.000 | Stream Army 12.00.000 | Patched |
 | `script.xxxodus.artwork` | 99.00.002 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
+| `plugin.video.cwm` (Cum With Me) | 99.00.001 | Stream Army 2.00.000 | Patched (see below) |
+| `script.cwm.scrapers` | 99.00.015 | Stream Army 1.00.014 | Patched |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |
 | `script.module.resolveurl.xxx` | 2.1.44 | Gujal00 | Unchanged |
 | `repository.xxxodus.piers` | 1.0.0 | — | This repository |
@@ -62,6 +65,29 @@ The patched add-ons use version 99 so Stream Army releases never replace them, a
 * **Readable source:** the obfuscated `default.py`, `menus.py` and `lover.py` were replaced with readable source.
 
 `patches/xxx-o-dus-all-changes.diff` has every change; for formerly obfuscated files it compares against the decoded originals.
+
+## Cum With Me changes
+
+Cum With Me is a full-screen window (pyxbmct) rather than a normal Kodi list, so the XXX-O-DUS changes were carried over like this:
+
+* **Readable source:** the obfuscated `Main.py`, `Cats.py` and `service.py` were replaced with their decoded source.
+* **Removed:**
+  * the `pinsystem.co.uk` PIN / access-token gate and its settings
+  * the online scraper version check (the window now shows the installed scraper version)
+  * the random user ID registered with, and removed from, `pinsystem.co.uk` on every launch (usage tracking)
+* **Kept:** the chat room, the notice text and the "online" counters, which still come from `pinsystem.co.uk`; if that server is down the window still opens.
+* **Kodi 22 / 23 and Python 3.12+:**
+  * the scraper loader used `find_module`, which Python 3.12 removed, so **XXX Sites** was empty (0 of 20 sites loaded)
+  * `quit()` inside window buttons closed the whole add-on; any site error raised out of the window
+  * every web request now has a timeout, so a dead site can't freeze the window
+  * a site that was down made every poster click and focus move raise `NameError`
+  * clicking the first site, a header row, or an empty poster slot crashed; "Search All Sites" results were sent to the wrong scrapers
+  * cam favourites failed until Kodi was restarted (database not created); removing one with a quote in the URL failed
+  * `Icon.png` / `Fanart.png` paths only worked on Windows; invalid `\-` escapes; Kodi refresh to a folder called "path"
+  * leftover debug pop-ups in the Pornhub and Cumlouder scrapers
+* **Look:** no background images or animated title; text buttons in one colour instead of pink lettering baked into images; menu column centred; smaller logo with rounded corners; rounded poster frames; `[COLOR]`/`[B]`/`[I]` tags stripped from all text. The add-on dropped from 34 MB to under 1 MB.
+
+`patches/cum-with-me-all-changes.diff` has every code change, compared against the decoded originals.
 
 ## Rebuilding
 

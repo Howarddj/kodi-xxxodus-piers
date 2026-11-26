@@ -1,8 +1,9 @@
 import xbmc, xbmcaddon, xbmcplugin, xbmcgui, xbmcvfs, os, requests, re, time
 import sqlite3
+from resources.libs import net  # default timeout for every request
 _addon_id_	= 'plugin.video.cwm'
 MainTextColour = 'gold'
-AddonTitle = ('[COLOR %s][B]Cum With Me[/B][/COLOR]' % MainTextColour)
+AddonTitle = 'Cum With Me'  # plain text, like the rest of the add-on
 dialog = xbmcgui.Dialog()
 _self_		= xbmcaddon.Addon(id=_addon_id_)
 get_setting = _self_.getSetting
@@ -10,7 +11,7 @@ translatePath = xbmcvfs.translatePath
 databases = translatePath(os.path.join('special://profile/addon_data/plugin.video.cwm', 'databases'))
 cwmdb = translatePath(os.path.join(databases, 'cwm.db'))
 headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82'}
-AddonIcon		= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'Icon.png'))
+AddonIcon		= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'icon.png'))
 if ( not os.path.exists(databases)): os.makedirs(databases)
 conn = sqlite3.connect(cwmdb)
 c = conn.cursor()
@@ -35,16 +36,21 @@ while not monitor.abortRequested():
         e = [u for u in c.fetchall()]
         conn.close()
         if len(e) < 1:
-            dialog.notification(AddonTitle, '[COLOR pink]No Performers Added To Favs, Monitor is on though![/COLOR]',AddonIcon, 2500)
+            dialog.notification(AddonTitle, 'No Performers Added To Favs, Monitor is on though!',AddonIcon, 2500)
             quit()
         else:
             for (name,url,image) in e:
                 if name not in Checked:
                     pattern = r'''hls_source.+(http.*?m3u8)'''
-                    link = requests.get(url,headers=headers).text
+                    try:
+                        link = requests.get(url,headers=headers).text
+                    except Exception as e:
+                        # one failed check (offline, site down) used to kill the service for the session
+                        xbmc.log('CWM monitor: %s :: %s' % (name, e), xbmc.LOGINFO)
+                        continue
                     source = re.findall(pattern,link,flags=re.DOTALL)
                     if source:
-                        dialog.notification(AddonTitle, '[COLOR pink]Performer %s is now Online[/COLOR]' % name, image, 2500)
+                        dialog.notification(AddonTitle, 'Performer %s is now Online' % name, image, 2500)
                         Checked.append(name)
                         xbmc.sleep(5000)
                     else: pass

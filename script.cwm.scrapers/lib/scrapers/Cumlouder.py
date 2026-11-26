@@ -71,7 +71,6 @@ class Scraper:
             except: pass
         return self.cats
     def GetNextPage(self,url):
-        dialog.ok("URL",str(url))
         if url == '':
             url = 'https://www.cumlouder.com/series/newest/2/'
             return url

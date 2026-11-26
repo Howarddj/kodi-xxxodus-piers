@@ -7,6 +7,8 @@ import sys
 import time
 import pyxbmct
 import requests
+from resources.libs import net  # default timeout for every request
+from resources.libs import look  # one text colour: strips [COLOR]/[B]/[I] from all window text
 import xbmcvfs
 import resolveurl
 import importlib
@@ -22,17 +24,17 @@ AddonTitle = ('[COLOR %s][B]Cum With Me[/B][/COLOR]' % MainTextColour)
 ####################################################################
 _self_		= xbmcaddon.Addon(id=_addon_id_)
 _images_	= '/resources/artwork/'
-dialog = xbmcgui.Dialog()
+dialog = look.PlainDialog()
 Date = time.strftime("%d/%m")
 get_setting = _self_.getSetting
 set_setting = _self_.setSetting
 Skin_Path = xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_ + _images_))
-Icon			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'Icon.png'))
-AddonIcon		= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'Icon.png'))
-FanArt			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'Fanart.png'))
+Icon			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'icon.png'))
+AddonIcon		= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'icon.png'))
+FanArt			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'fanart.jpg'))
 Background_Image	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AddonBG.png'))
 Background_Image_Alt	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AddonBGALT.png'))
-AppIcon	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AppIcon.png'))
+AppIcon	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AppIconRound.png'))  # smaller, rounded corners
 AppTitle	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AppTitle.gif'))
 LiveF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'LiveF1.png'))
 LiveNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'LiveNF.png'))
@@ -63,7 +65,23 @@ CamUrl = 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendatio
 ApiUrl = 'https://pinsystem.co.uk/CumWithMe/api.php'
 databases = xbmcvfs.translatePath(os.path.join('special://profile/addon_data/plugin.video.cwm', 'databases'))
 cwmdb = xbmcvfs.translatePath(os.path.join(databases, 'cwm.db'))
+# The favourites database was only created by the background service, so Add to favs /
+# Favourites failed ("unable to open database file") until Kodi had been restarted.
+try:
+    if not os.path.exists(databases): os.makedirs(databases)
+    _c = sqlite3.connect(cwmdb); _c.execute("CREATE TABLE IF NOT EXISTS chaturbate (name, url, image)"); _c.commit(); _c.close()
+except Exception as e:
+    xbmc.log('CWM: could not prepare favourites database :: %s' % e, xbmc.LOGERROR)
 pDialog = xbmcgui.DialogProgress()
+site = ''          # the site row last selected on the Sites screen
+# The poster grid's globals were only created once a page had loaded, so with the site down
+# every poster click/focus raised NameError. Start them empty.
+for _i in range(1, 17):
+    globals()['Poster%d' % _i] = ''; globals()['Stream%d' % _i] = ''; globals()['Description%d' % _i] = ''
+camimage, camurl, camdesc, camname = [], [], [], []
+movimage, movurl, movdesc, movname = [], [], [], []
+ActiveSite = ''
+sites = ['']
 def MainWindow(cat):
     global ActiveF
     global ActiveNF
@@ -95,7 +113,7 @@ def tick(self):
     time2 = time.strftime("%I:%M %p")
     self.TIME.setLabel(str(time2))
 def CloseWindow(self):
-    global NextPageUrl
+    global NextPageUrl, ActiveSite
     try:
         if DisplayOptions == 'Cam':
             if self.getFocus() == self.LIST2:
@@ -108,6 +126,7 @@ def CloseWindow(self):
             self.close()
         elif self.getFocus() == self.LIST2:
             NextPageUrl = ''
+            ActiveSite = ''   # back on the site list: Next Page / Categories follow the highlighted site again
             self.PerformerImage.setImage(AddonIcon)
             self.button18.setVisible(False)
             self.button17.setVisible(False)
@@ -479,8 +498,9 @@ def Player(url,iconimage):
         liz.setProperty('IsPlayable', 'true')
         liz.setPath(stream_url)
         xbmc.Player ().play(stream_url, liz, False)
-        quit()
+        return  # was quit(): that closed the whole add-on from inside the window
 def ResolveLive(self,image,media):
+    if not media: return  # empty poster slot on a short page
     ApiInfo(self)
     BaseUrl = 'https://adult-tv-channels.com'
     link = requests.get(media,headers=headers).text
@@ -496,6 +516,7 @@ def ResolveLive(self,image,media):
     #dialog.ok("SOURXE",str(source))
     Player(source,image)
 def ResolveMovie(self,image,media):
+    if not media: return  # empty poster slot on a short page
     ApiInfo(self)
     link = requests.get(media,headers=headers).text
     soup = BeautifulSoup(link, 'html.parser')
@@ -513,10 +534,10 @@ def ResolveMovie(self,image,media):
             streamurl.append(media)
     if linksfound == 0:
             dialog.notification(AddonTitle, "[COLOR red][B]Sorry, No Links Found![/B][/COLOR]", AddonIcon, 5000)
-            quit()
+            return  # was quit(): that closed the whole add-on from inside the window
     else:
         select = dialog.select('Choose A Source',streamname)
-        if select < 0: quit()
+        if select < 0: return  # was quit(): that closed the whole add-on from inside the window
         Player(streamurl[select],image)
 def NextPage(self,url,site):
     #dialog.ok("NextPage",str(url))
@@ -561,12 +582,14 @@ def NextPage(self,url,site):
                 Cams(self,NextPageUrl)
             else:
                 #dialog.ok("IN","ELSE")
-                quit()
+                return  # was quit(): that closed the whole add-on from inside the window
                 NextPageUrl = NextPageUrl.split('=')[-1]
                 NewNextPageUrl = int(NextPageUrl) + 1
                 NextPageUrl = ('https://chaturbate.com/?page=%s' % NewNextPageUrl)
                 Cams(self,NextPageUrl)
     if DisplayOptions == 'Sites':
+        if not site or site == 'SEARCH':
+            return  # no next page for the site list or a search
         from scrapers import sources
         _sources = sources()
         for source in _sources:
@@ -589,7 +612,7 @@ def GetMovieCats(self,MovieUrl):
             streamname.append(name)
             streamurl.append(url2)
     select = dialog.select('Choose an Studio',streamname)
-    if select < 0: quit()
+    if select < 0: return  # was quit(): that closed the whole add-on from inside the window
     else:
         NextPageUrl = ('%s/page/1' % streamurl[select])
         Movies(self,streamurl[select])
@@ -643,7 +666,9 @@ def Cams(self,url):
         self.LIST.addItem(pname.title())
 def PlayCam(self,mode):
     ApiInfo(self)
-    listpos = self.LIST.getSelectedPosition()
+    listpos = (self.LIST2 if mode == 'fav' else self.LIST).getSelectedPosition()
+    if listpos < 0 or listpos >= len(camurl) or not camurl[listpos]:
+        return  # header row
     media = camurl[listpos]
     if media == 'monitoron':
         xbmcaddon.Addon().openSettings()
@@ -655,26 +680,26 @@ def PlayCam(self,mode):
             if whattodo == 0:
                 AddCamToFavs(self)
             elif whattodo == 2:
-                quit()
+                return  # was quit(): that closed the whole add-on from inside the window
             else:
                 pattern = r'''hls_source.+(http.*?m3u8)'''
                 link = requests.get(media,headers=headers).text
                 source = re.findall(pattern,link,flags=re.DOTALL)[0]
-                source = source.replace('u002D','-').replace('\-','-')
+                source = source.replace('u002D','-').replace('\\-','-')
                 Player(source,camimage[listpos])
         elif mode == 'fav':
             whattodo = dialog.yesnocustom(AddonTitle, 'Select an option', yeslabel='View Cam',nolabel='Remove to favs', customlabel='Close', defaultbutton=11)
             if whattodo == 0:
                 RemoveCamFavs(self)
             elif whattodo == 2:
-                quit()
+                return  # was quit(): that closed the whole add-on from inside the window
             else:
                 listpos = self.LIST2.getSelectedPosition()
                 media = camurl[listpos]
                 pattern = r'''hls_source.+(http.*?m3u8)'''
                 link = requests.get(media,headers=headers).text
                 source = re.findall(pattern,link,flags=re.DOTALL)[0]
-                source = source.replace('u002D','-').replace('\-','-')
+                source = source.replace('u002D','-').replace('\\-','-')
                 Player(source,camimage[listpos])
 
 def GetCamCats(self,url):
@@ -690,7 +715,7 @@ def GetCamCats(self,url):
         streamname.append(name)
         streamurl.append(url2)
     select = dialog.select('Choose an Tag',streamname)
-    if select < 0: quit()
+    if select < 0: return  # was quit(): that closed the whole add-on from inside the window
     else:
         NextPageUrl = streamurl[select]
         Cams(self,streamurl[select])
@@ -711,6 +736,8 @@ def Sites(self):
         sites.append(source)
         self.LIST.addItem(source[0].title())
 def GetSiteUrl(self,site,url):
+    if not site:
+        return  # the 'Available Sites' header row
     ApiInfo(self)
     self.LIST2.reset()
     global movimage
@@ -735,9 +762,12 @@ def GetSiteUrl(self,site,url):
     searched = 0
     if 'SEARCH' in site:
         string =''
-        keyboard = xbmc.Keyboard(string, '[COLOR magenta]Cum on then, What shall we search for?[/COLOR]')
+        keyboard = xbmc.Keyboard(string, 'Cum on then, What shall we search for?')
         keyboard.doModal()
         if keyboard.isConfirmed(): string = keyboard.getText()
+        if len(string) < 2:
+            self.LIST2.setVisible(False); self.LIST.setVisible(True); self.setFocus(self.LIST)
+            return
         pDialog.create(AddonTitle, 'Searching for\n%s...' %string)
         for source in _sources:
             searched += 1
@@ -745,7 +775,7 @@ def GetSiteUrl(self,site,url):
             if (pDialog.iscanceled()):
                 pDialog.close()
                 self.setFocus(self.LIST2)
-                quit()
+                return  # was quit(): that closed the whole add-on from inside the window
             try:
                 if len(string)>1:
                     getsearch = source[1].SearchSite(string)
@@ -777,6 +807,8 @@ def GetSiteUrl(self,site,url):
 def ResolveSiteMovie(self,site):
     ApiInfo(self)
     listpos = self.LIST2.getSelectedPosition()
+    if listpos < 0 or listpos >= len(movurl) or not movurl[listpos]:
+        return  # 'Content From X' header row
     media = movurl[listpos]
     from scrapers import sources
     _sources = sources()
@@ -784,7 +816,9 @@ def ResolveSiteMovie(self,site):
     streamurl = []
     linksfound = 0
     for source in _sources:
-        if site[0] in source[0]:
+        # search results come from many sites: match on the video's domain only ('SEARCH'[0] is
+        # 'S', which sent results to every scraper with an S in its name)
+        if site != 'SEARCH' and site[0] in source[0]:
             resolvelink = source[1].ResolveLink(media)
             for links in resolvelink:
                 linksfound += 1
@@ -798,12 +832,15 @@ def ResolveSiteMovie(self,site):
                 streamurl.append(links['url'])
     if linksfound == 0:
             dialog.notification(AddonTitle, "[COLOR red][B]Sorry, No Links Found![/B][/COLOR]", AddonIcon, 5000)
-            quit()
+            return  # was quit(): that closed the whole add-on from inside the window
     else:
         select = dialog.select('Choose A Source',streamname)
-        if select < 0: quit()
+        if select < 0: return  # was quit(): that closed the whole add-on from inside the window
         Player(streamurl[select],movimage[listpos])
 def GetSiteCats(self,site):
+    if not site or site == 'SEARCH':
+        dialog.notification(AddonTitle, 'Choose a site first', AddonIcon, 2500)
+        return
     ApiInfo(self)
     global NextPageUrl
     from scrapers import sources
@@ -821,10 +858,10 @@ def GetSiteCats(self,site):
     #dialog.ok("CATSURL",str(caturl))
     if catsfound == 0:
             dialog.notification(AddonTitle, "[COLOR red][B]Sorry, No Links Found![/B][/COLOR]", AddonIcon, 5000)
-            quit()
+            return  # was quit(): that closed the whole add-on from inside the window
     else:
         select = dialog.select('Choose A Catergory',catname)
-        if select < 0: quit()
+        if select < 0: return  # was quit(): that closed the whole add-on from inside the window
         NextPageUrl = caturl[select]
         GetSiteUrl(self,site,caturl[select])
 def ApiInfo(self):
@@ -869,7 +906,9 @@ def ShowCamFavs(self):
     e = [u for u in c.fetchall()]
     if len(e) < 1:
         self.LIST2.addItem('[COLOR white]No Favourites Added yet[/COLOR]')
-        quit()
+        conn.close()
+        self.setFocus(self.LIST2)
+        return
     for (name,url,image) in e:
         camname.append(name)
         camurl.append(url)
@@ -900,36 +939,61 @@ def RemoveCamFavs(self):
     img = camimage[listpos]
     conn = sqlite3.connect(cwmdb)
     c = conn.cursor()
-    c.execute("DELETE FROM chaturbate WHERE url = '%s'" % media)
+    c.execute("DELETE FROM chaturbate WHERE url = ?", (media,))
     conn.commit()
     conn.close()
     dialog.notification(AddonTitle, '[COLOR pink]%s Removed from Favs & Monitoring[/COLOR]' % name, img, 2500)
     ShowCamFavs(self)
+def _clicked_site(self):
+    global site
+    pos = self.LIST.getSelectedPosition()
+    site = sites[pos] if 0 <= pos < len(sites) else ''
+    return site
+
+
+def _current_site():
+    # on a site's video list use that site; on the site list use the highlighted row
+    try:
+        if ActiveSite: return ActiveSite
+    except NameError: pass
+    return site
+
+
+def _safe(fn):
+    # Any site error (down, blocked, layout changed) used to raise straight out of the window
+    # callback: nothing happened on screen and a traceback went to the log.
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            try: pDialog.close()
+            except Exception: pass
+            xbmc.log('CWM: %s failed :: %s: %s' % (fn.__name__, type(e).__name__, e), xbmc.LOGERROR)
+            dialog.notification(AddonTitle, 'Could not load this right now (site down or changed)', AddonIcon, 4000)
+    wrapper.__name__ = fn.__name__
+    return wrapper
+
+
+for _name in ('LiveChannel', 'Movies', 'ResolveLive', 'ResolveMovie', 'NextPage', 'GetMovieCats', 'Cams',
+              'PlayCam', 'GetCamCats', 'Sites', 'GetSiteUrl', 'ResolveSiteMovie', 'GetSiteCats',
+              'ShowCamFavs', 'AddCamToFavs', 'RemoveCamFavs'):
+    globals()[_name] = _safe(globals()[_name])
+
+
 class Main(pyxbmct.AddonFullWindow):
     xbmc.executebuiltin("Dialog.Close(busydialog)")
     def __init__(self, title='cwm'):
         super(Main, self).__init__(title)
         self.setGeometry(1280, 720,150, 50)
-        if DisplayOptions == 'Live' or DisplayOptions == 'Movie':
-            self.main_bg_img = Background_Image
-            self.main_bg = xbmcgui.ControlImage(0, 0, 1280, 720, self.main_bg_img)
-            self.main_bg.setImage(Background_Image)
-            self.addControl(self.main_bg)
-        else:
-            self.main_bg_img = Background_Image_Alt
-            self.main_bg = xbmcgui.ControlImage(0, 0, 1280, 720, self.main_bg_img)
-            self.main_bg.setImage(Background_Image_Alt)
-            self.addControl(self.main_bg)
-        self.main_bg = xbmcgui.ControlImage(0, 0, 1280, 720, self.main_bg_img)
-        self.addControl(self.main_bg)
+        # no background image: pyxbmct's plain dark window background shows instead
         self.set_info_controls()
         self.set_active_controls()
         self.set_navigation()
         self.connect(pyxbmct.ACTION_NAV_BACK, lambda:CloseWindow(self))
-        AppLogo = pyxbmct.Image(AppIcon)
-        self.placeControl(AppLogo, -10, 45, 30, 6)
-        AppHeader = pyxbmct.Image(AppTitle)
-        self.placeControl(AppHeader, -10, 0, 18, 20)
+        AppLogo = pyxbmct.Image(AppIcon, aspectRatio=2)
+        self.placeControl(AppLogo, -8, 46, 20, 4)
+        AppHeader = pyxbmct.Label('Cum With Me', textColor=look.TEXT_COLOUR, font='font13_title')
+        self.placeControl(AppHeader, -8, 0, 12, 20)
         ApiInfo(self)
         if DisplayOptions == 'Live':
             LiveChannel(self,LiveChanUrl)
@@ -984,13 +1048,13 @@ class Main(pyxbmct.AddonFullWindow):
             self.setFocus(self.LIST)
         if DisplayOptions == 'Sites':
             Sites(self)
-            self.connect(self.LIST, lambda:GetSiteUrl(self,site,''))
+            self.connect(self.LIST, lambda:GetSiteUrl(self,_clicked_site(self),''))
             self.connect(self.LIST2, lambda:ResolveSiteMovie(self,ActiveSite))
             self.PerformerImage = pyxbmct.Image(AddonIcon)
             self.placeControl(self.PerformerImage, 82, 39, 54, 9)
             self.setFocus(self.LIST)
-            self.connect(self.button18, lambda:GetSiteCats(self,site))
-            self.connect(self.button17, lambda:NextPage(self,NextPageUrl,site))
+            self.connect(self.button18, lambda:GetSiteCats(self,_current_site()))
+            self.connect(self.button17, lambda:NextPage(self,NextPageUrl,_current_site()))
     def set_info_controls(self):
         self.TIME = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
         self.USERS = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
@@ -1053,8 +1117,8 @@ class Main(pyxbmct.AddonFullWindow):
             self.placeControl(self.button15, 112, 30, 30, 7)
             self.button16 = pyxbmct.Button('',   focusTexture=Frame1F,   noFocusTexture=Frame1NF)
             self.placeControl(self.button16, 112, 38, 30, 7)
-            self.button17 = pyxbmct.Button('',   focusTexture=NextPageF,   noFocusTexture=NextPageNF)
-            self.placeControl(self.button17, 142, 38, 20, 7)
+            self.button17 = look.button('Next Page')
+            self.placeControl(self.button17, 146, 38, 11, 7)
         if DisplayOptions == 'Movie':
             self.button1 = pyxbmct.Button('',   focusTexture=Frame1F,   noFocusTexture=Frame1NF)
             self.placeControl(self.button1, 22, 14, 30, 7)
@@ -1091,37 +1155,38 @@ class Main(pyxbmct.AddonFullWindow):
             self.placeControl(self.button15, 112, 30, 30, 7)
             self.button16 = pyxbmct.Button('',   focusTexture=Frame1F,   noFocusTexture=Frame1NF)
             self.placeControl(self.button16, 112, 38, 30, 7)
-            self.button17 = pyxbmct.Button('',   focusTexture=NextPageF,   noFocusTexture=NextPageNF)
-            self.placeControl(self.button17, 142, 38, 20, 7)
-            self.button18 = pyxbmct.Button('',   focusTexture=CatF,   noFocusTexture=CatNF)
-            self.placeControl(self.button18, 142, 14, 20, 7)
+            self.button17 = look.button('Next Page')
+            self.placeControl(self.button17, 146, 38, 11, 7)
+            self.button18 = look.button('Categories')
+            self.placeControl(self.button18, 146, 14, 11, 7)
         if DisplayOptions == 'Cam':
             self.LIST = pyxbmct.List(buttonFocusTexture=List_Focused, buttonTexture='', _imageWidth=10, _imageHeight=10, _space=-1, _itemHeight=35,  _itemTextXOffset=-5, _itemTextYOffset=-2, textColor='0xFFFFFFFF')
-            self.placeControl(self.LIST, 16, 15, 134, 22)
-            self.button17 = pyxbmct.Button('',   focusTexture=NextPageF,   noFocusTexture=NextPageNF)
-            self.placeControl(self.button17, 142, 32, 20, 7)
-            self.button18 = pyxbmct.Button('',   focusTexture=CatF,   noFocusTexture=CatNF)
-            self.placeControl(self.button18, 142, 14, 20, 7)
-            self.button19 = pyxbmct.Button('',   focusTexture=FavF,   noFocusTexture=FavNF)
-            self.placeControl(self.button19, 142, 24, 23, 5)
+            self.placeControl(self.LIST, 16, 15, 126, 22)
+            self.button17 = look.button('Next Page')
+            self.placeControl(self.button17, 146, 32, 11, 7)
+            self.button18 = look.button('Categories')
+            self.placeControl(self.button18, 146, 14, 11, 7)
+            self.button19 = look.button('Favourites')
+            self.placeControl(self.button19, 146, 23, 11, 7)
             self.LIST2 = pyxbmct.List(buttonFocusTexture=List_Focused, buttonTexture='', _imageWidth=10, _imageHeight=10, _space=-1, _itemHeight=35,  _itemTextXOffset=-5, _itemTextYOffset=-2, textColor='0xFFFFFFFF')
-            self.placeControl(self.LIST2, 16, 15, 134, 22)
+            self.placeControl(self.LIST2, 16, 15, 126, 22)
         if DisplayOptions == 'Sites':
             self.LIST = pyxbmct.List(buttonFocusTexture=List_Focused, buttonTexture='', _imageWidth=10, _imageHeight=10, _space=-1, _itemHeight=35,  _itemTextXOffset=-5, _itemTextYOffset=-2, textColor='0xFFFFFFFF')
-            self.placeControl(self.LIST, 16, 15, 134, 22)
+            self.placeControl(self.LIST, 16, 15, 126, 22)
             self.LIST2 = pyxbmct.List(buttonFocusTexture=List_Focused, buttonTexture='', _imageWidth=10, _imageHeight=10, _space=-1, _itemHeight=35,  _itemTextXOffset=-5, _itemTextYOffset=-2, textColor='0xFFFFFFFF')
-            self.placeControl(self.LIST2, 16, 15, 134, 22)
-            self.button17 = pyxbmct.Button('',   focusTexture=NextPageF,   noFocusTexture=NextPageNF)
-            self.placeControl(self.button17, 142, 31, 20, 7)
-            self.button18 = pyxbmct.Button('',   focusTexture=CatF,   noFocusTexture=CatNF)
-            self.placeControl(self.button18, 142, 14, 20, 7)
+            self.placeControl(self.LIST2, 16, 15, 126, 22)
+            self.button17 = look.button('Next Page')
+            self.placeControl(self.button17, 146, 32, 11, 7)
+            self.button18 = look.button('Categories')
+            self.placeControl(self.button18, 146, 14, 11, 7)
         self.textbox = pyxbmct.TextBox()
-        self.placeControl(self.textbox, 70, 0, 50, 14)
+        self.placeControl(self.textbox, 88, 0, 56, 13)
         self.textbox.autoScroll(1000, 1000, 1000)
-        self.ActiveButton = pyxbmct.Button('',   focusTexture=ActiveF,   noFocusTexture=ActiveNF)
-        self.placeControl(self.ActiveButton, 10, 0, 30, 12)
-        self.BackButton = pyxbmct.Button('',   focusTexture=BackF,   noFocusTexture=BackNF)
-        self.placeControl(self.BackButton, 40, 0, 30, 12)
+        self.ActiveButton = look.button({'Live': 'Live XXX Channels', 'Cam': 'Live XXX Cams',
+                                         'Movie': 'XXX Movies', 'Sites': 'XXX Sites'}.get(DisplayOptions, ''))
+        self.placeControl(self.ActiveButton, 52, 0, 14, 10)
+        self.BackButton = look.button('Back')
+        self.placeControl(self.BackButton, 69, 0, 14, 10)
         self.connect(self.BackButton, lambda:CloseWindow(self))
     def set_navigation(self):
         if DisplayOptions == 'Live' or DisplayOptions == 'Movie':
@@ -1297,16 +1362,13 @@ class Main(pyxbmct.AddonFullWindow):
                 self.textbox.setText('[COLOR magenta]Select Category[/COLOR]')
             if self.getFocus() == self.LIST:
                 listpos = self.LIST.getSelectedPosition()
-                desc = camdesc[listpos]
-                self.textbox.setText('[COLOR magenta]%s[/COLOR]' %desc)
-                setpefimage = camimage[listpos]
-                self.PerformerImage.setImage(setpefimage)
+                if 0 <= listpos < len(camdesc):   # lists are empty when Chaturbate didn't load
+                    self.textbox.setText('[COLOR magenta]%s[/COLOR]' % camdesc[listpos])
+                    self.PerformerImage.setImage(camimage[listpos])
             if self.getFocus() == self.LIST2:
                 listpos = self.LIST2.getSelectedPosition()
-                #desc = camdesc[listpos]
-                #self.textbox.setText('[COLOR magenta]%s[/COLOR]' %desc)
-                setpefimage = camimage[listpos]
-                self.PerformerImage.setImage(setpefimage)
+                if 0 <= listpos < len(camimage):
+                    self.PerformerImage.setImage(camimage[listpos])
         if DisplayOptions == 'Sites':
             if self.getFocus() == self.LIST:
                 global site

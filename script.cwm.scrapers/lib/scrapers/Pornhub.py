@@ -38,7 +38,6 @@ class Scraper:
                 else: xbmc.log('SCRAPER ERROR : %s ::: No Content Found'% SiteName,xbmc.LOGINFO)
             else: pass
         except Exception as e:
-            dialog.ok("ERROR",str(e))
             xbmc.log('SCRAPER ERROR : %s ::: %s'% (SiteName,e),xbmc.LOGINFO)
     def MainContent(self,url):
         if url == '': url = self.Base
@@ -46,7 +45,6 @@ class Scraper:
             link = requests.get(url,headers=headers, cookies=cookies).text
             soup = BeautifulSoup(link, 'html.parser')
             content = soup.find('ul', id={'videoCategory'})
-            dialog.ok("CONTENT",str(content))
             for i in content.find_all('div', class_={'phimage'}):
                 try:
                     name = i.a['title']

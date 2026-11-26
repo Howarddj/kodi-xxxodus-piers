@@ -64,7 +64,16 @@ class scraper:
                 dirlst.append({'name': kodi.giveColor('Next Page -->','white'), 'url': url, 'mode': mode, 'icon': icon, 'fanart': fanart, 'description': 'Load More......', 'folder': True})
             else: 
                 r = client.request(url)
-                url2 = re.findall(r'%s' % pattern,r)[0]
+                found = re.findall(r'%s' % pattern,r)
+                if not found:
+                    # site-specific pattern missed: try the standard forms (Freeomovie broke this way)
+                    for fb in (r'''<link[^>]+rel=['"]next['"][^>]*href=['"]([^'"]+)''',
+                               r'''<a[^>]+class=['"][^'"]*next[^'"]*['"][^>]*href=['"]([^'"]+)''',
+                               r'''<a[^>]+href=['"]([^'"]+)['"][^>]*class=['"][^'"]*next[^'"]*['"]''',
+                               r'''<a[^>]+href=['"]([^'"]+)['"][^>]*rel=['"]next['"]'''):
+                        found = re.findall(fb, r)
+                        if found: break
+                url2 = found[0]
                 if parse:
                     url2 = urljoin(parse,url2)
                 elif '&amp;' in url2: url2 = url2.replace('&amp;','&')

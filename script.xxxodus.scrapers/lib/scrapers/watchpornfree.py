@@ -14,7 +14,7 @@ Headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit
 buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
-base_domain  = 'https://watchpornfree.watch'
+base_domain  = 'https://watchpornfree.info'  # watchpornfree.watch no longer resolves
 base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'movies'
 menu_mode    = 324
@@ -26,7 +26,7 @@ search_base  = urljoin(base_domain,'search/%s').replace(' ','+')
 
 @utils.url_dispatcher.register('%s' % menu_mode)
 def menu():
-	url = 'https://watchpornfree.watch/'
+	url = base_domain + '/'
 	lover.checkupdates()
 	content(url)
 	# try:

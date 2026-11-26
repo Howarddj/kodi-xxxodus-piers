@@ -86,7 +86,7 @@ class streamer:
             
             elif 'porn.com' in url: u = self.generic(url)
             
-            elif 'pandamovies.me' in url: u = self.pandamovie(url)
+            elif 'pandamovies.me' in url or 'pandamovies.pw' in url: u = self.pandamovie(url)
 
             elif 'winporn.com' in url: u = self.winporn(url)
 
@@ -167,7 +167,7 @@ class streamer:
             
             elif 'teenpornsite.net' in url: u = self.teenpornsite(url)
             
-            elif 'watchpornfree.watch' in url: u = self.watchpornfree(url)
+            elif 'watchpornfree.' in url: u = self.watchpornfree(url)
             
             elif 'pornhd.com' in url: u = self.pornhd(url)
             

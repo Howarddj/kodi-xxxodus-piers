@@ -45,9 +45,18 @@ def _get_json(url):
     # requests.exceptions.JSONDecodeError and the whole menu failed.
     try:
         r = requests.get(url, headers=headers, timeout=20)
-        return r.json()
     except Exception as e:
         log_utils.log('Chaturbate request failed for %s :: %s' % (url, str(e)), log_utils.LOGERROR)
+        return None
+    try:
+        return r.json()
+    except Exception:
+        # a web page instead of data: say why if it's an age-verification / block page
+        reason = log_utils.blocked_reason(r.text)
+        title = re.search(r'<title>(.*?)</title>', r.text, re.S | re.I)
+        log_utils.log('Chaturbate answered HTTP %s with a page instead of data for %s :: title: %s :: %s'
+                      % (r.status_code, url, title.group(1).strip()[:120] if title else '?', reason or 'unknown page'), log_utils.LOGERROR)
+        if reason: kodi.notify(msg='Chaturbate: %s' % reason, duration=6000)
         return None
 
 @utils.url_dispatcher.register('%s' % menu_mode)
@@ -63,8 +72,12 @@ def menu():
     fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
     dirlst.append({'name': 'Monitored Performers', 'url': 'none', 'mode': 30, 'icon': icon, 'fanart': fanarts, 'folder': True})
     dirlst.append({'name': 'Search By Username', 'url': 'none', 'mode': 32, 'icon': icon, 'fanart': fanarts, 'folder': False})
+    # rooms used to be reachable only through the tag list below; list them directly too
+    rooms = 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&limit=100&offset=0'
+    dirlst.append({'name': 'All Rooms', 'url': rooms, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
+    for g, label in (('f', 'Female'), ('m', 'Male'), ('c', 'Couples'), ('t', 'Trans')):
+        dirlst.append({'name': '%s Rooms' % label, 'url': rooms + '&genders=%s' % g, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
     dirlst.append({'name': 'Rooms By Tag', 'url': 'tags', 'mode': 302, 'icon': icon, 'fanart': fanarts, 'folder': True})
-    if link is None: kodi.notify(msg='Chaturbate tag list unavailable right now', duration=5000)
     for i in (link or {}).get('hashtags', []):
         try:
             cat = i['hashtag']#.title()
@@ -106,14 +119,28 @@ def content(url,searched=False):
         kodi.notify(msg='No Content Found')
         quit()
         
-    search_pattern = '''<li><a\\s*href=['"]([^'"]+)['"]\\s*class=['"]next endless_page_link'''
-    parse = base_domain
-    helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
+    # the room list is JSON: page by offset (the old HTML 'next' pattern never matched)
+    m = re.search(r'offset=(\d+)', url)
+    if len(data) >= 100 and m:
+        nxt = url.replace(m.group(0), 'offset=%d' % (int(m.group(1)) + 100))
+        helper.scraper().get_next_page(content_mode, nxt + '|GOT_URL', None, filename)
+    else:
+        xbmcplugin.endOfDirectory(kodi.syshandle, cacheToDisc=False)
     
 @utils.url_dispatcher.register('302', ['url'])
 def byTags(url):
-    #dialog.ok("URL",str(url))
-    c = requests.get(base_domain, headers=headers).text
+    # the tag API first (the homepage carries no /tag/ links any more), homepage scrape as a fallback
+    data = _get_json('https://chaturbate.com/api/ts/hashtags/tag-table-data/?sort=-vc&page=1&g=&limit=100') if url == 'tags' else None
+    if data and data.get('hashtags'):
+        icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/icon.png' % filename))
+        fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
+        dirlst = [{'name': '%s (%s viewers)' % (t['hashtag'].title(), t.get('viewer_count', '?')),
+                   'url': 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&hashtags=%s&limit=100&offset=0' % quote_plus(t['hashtag']),
+                   'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'description': t['hashtag'], 'folder': True}
+                  for t in data['hashtags'] if t.get('hashtag')]
+        buildDirectory(dirlst)
+        return
+    c = requests.get(base_domain, headers=headers, timeout=20).text
     soup = BeautifulSoup(c, 'html.parser')
     tags = soup.find_all("a", href=lambda href: href and "/tag/" in href)
     #dialog.ok("TAGS",str(tags))

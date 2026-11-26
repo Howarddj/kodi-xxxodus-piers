@@ -206,6 +206,11 @@ def notify(header=None, msg='', duration=2000, sound=None, icon_path=None):
     if header is None: header = get_name()
     if sound is None: sound = get_setting('mute_notifications') == 'false'
     if icon_path is None: icon_path = os.path.join(get_path(), 'icon.png')
+    if msg.startswith('Scraping Error'):
+        try:
+            import log_utils
+            if log_utils.BLOCKED: msg, duration = log_utils.BLOCKED, max(duration, 6000)
+        except Exception: pass
     try:
         xbmcgui.Dialog().notification(header, msg, icon_path, duration, sound)
     except:

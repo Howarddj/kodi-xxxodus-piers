@@ -16,7 +16,7 @@ headers = {'User-Agent' : 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; Trid
 buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 filename     = 'pandamovie'
-base_domain  = 'https://pandamovies.me/'
+base_domain  = 'https://pandamovies.pw/'  # pandamovies.me answers 'Access denied' (Cloudflare) from the UK
 base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
 type         = 'movies'
 menu_mode    = 297
@@ -24,13 +24,13 @@ content_mode = 298
 player_mode  = 810
 
 search_tag   = 0
-search_base  = urljoin(base_domain,'search.fcgi?query=%s')
+search_base  = urljoin(base_domain,'?s=%s')
 
 @utils.url_dispatcher.register('%s' % menu_mode)
 def menu():
     
 	lover.checkupdates()
-	url = urljoin(base_domain,'category/porn-movies/')
+	url = urljoin(base_domain,'movies')
 	content(url)
 	# try:
 		# url = urljoin(base_domain,'xxx/movies/')
@@ -67,10 +67,10 @@ def menu():
 def content(url,searched=False):
     try:
         if url == '':
-            url = urljoin(base_domain,'category/porn-movies/')
+            url = urljoin(base_domain,'movies')
         link = requests.get(url,headers=headers).text
         soup = BeautifulSoup(link, 'html.parser')
-        r = soup.find_all('a', class_={'thumb'})
+        r = soup.find_all('div', class_={'ml-item'}) or soup.find_all('a', class_={'thumb'})  # .pw layout, then the old one
         if ( not r ) and ( not searched ):
             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(link)[:1000]), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
@@ -85,14 +85,16 @@ def content(url,searched=False):
         
     for i in r:
         try:
-            title = i.img['alt']
-            mediaurl = i['href']
-            icon = i.img['src']
+            a = i if i.name == 'a' else i.a
+            title = a.get('title') or a.get('oldtitle') or i.img.get('alt') or a['href'].rstrip('/').split('/')[-1].replace('-', ' ').title()
+            mediaurl = a['href']
+            icon = i.img.get('data-lazy-src') or i.img.get('data-src') or i.img.get('src', '')
+            desc_tag = i.find('p', class_={'f-desc'}) if i.name != 'a' else None
             #if '.gif' in icon: icon = i.img['data-wpfc-original-src']
             #dialog.ok("Media",str(icon))
             #quit()
             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
-            dirlst.append({'name': title, 'url': mediaurl, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': 'No Desc', 'folder': False})
+            dirlst.append({'name': title, 'url': mediaurl, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': desc_tag.text.strip() if desc_tag else title, 'folder': False})
         except Exception as e:
             log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
 
@@ -107,7 +109,8 @@ def content(url,searched=False):
     if not searched:
         
         try:
-            search_pattern = '''link rel=['"]next['"].*?href=['"]([^'"]+)'''
-            helper.scraper().get_next_page(content_mode,url,search_pattern,filename)
+            m = re.search(r'/page/(\d+)/?$', url)
+            nxt = re.sub(r'/page/\d+/?$', '/page/%d/' % (int(m.group(1)) + 1), url) if m else url.rstrip('/') + '/page/2/'
+            helper.scraper().get_next_page(content_mode, nxt + '|GOT_URL', None, filename)
         except Exception as e: 
             log_utils.log('Error getting next page for %s :: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)

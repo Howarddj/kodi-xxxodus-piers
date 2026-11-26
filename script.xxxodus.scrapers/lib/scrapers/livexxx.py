@@ -13,7 +13,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
 translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
 dialog = xbmcgui.Dialog()
 filename     = os.path.basename(__file__).split('.')[0]
-base_domain  = 'https://adult-tv-channels.com/?0'
+base_domain  = 'https://adult-tv-channels.com/'  # '/?0' now answers 'Page not found'
 base_name    = 'Live XXX Channels'#base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
 type         = 'livexxx'
 menu_mode    = 330 
@@ -65,6 +65,10 @@ def content(url,searched=False):
         c = client.request(url)
         soup = BeautifulSoup(c,'html.parser')
         r = soup.find_all('figure', class_={'entry-item-thumb'})
+        if not r:
+            # fall back to the 'Recent channels' list every page of the site carries (names, no logos)
+            box = soup.find('aside', class_={'widget_recent_entries'})
+            r = [('link', a) for a in (box.find_all('a') if box else []) if a.get('href', '').startswith('http')]
         if ( not r ) and ( not searched ):
             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
@@ -79,6 +83,13 @@ def content(url,searched=False):
         
     for i in r:
         try:
+            if isinstance(i, tuple):   # fallback list entry
+                a = i[1]
+                chan_name = a.text.replace('Online', '').replace('online', '').strip()
+                fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
+                icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/icon.png' % filename))
+                dirlst.append({'name': chan_name, 'url': a['href'], 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': chan_name, 'folder': False})
+                continue
             chan_name = i.img['alt'].replace('official logo','').replace('channel logo','').replace('logo','').title()
             chan_link = i.a['href']
             chan_logo = i.img['src']

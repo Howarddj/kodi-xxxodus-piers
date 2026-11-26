@@ -38,7 +38,33 @@ if enabled_comp:
 else:
     enabled_comp = None
 
+import re as _re
+# Pages that mean "this site won't serve you", not "the site changed": UK Online Safety Act age gates,
+# Cloudflare country/firewall blocks. Remembered so kodi.notify() can say so instead of "Scraping Error".
+_BLOCK_PATTERNS = [
+    (_re.compile(r'Online Safety Act|verify (that )?you(r age| are 18)|Age Verification Page|age[ _-]?verification', _re.I),
+     'Site requires age verification in your country'),
+    (_re.compile(r'used Cloudflare to restrict access|Access denied \| |Sorry, you have been blocked|Error 1020|Error 1009', _re.I),
+     'Site blocks access from your country or network'),
+]
+BLOCKED = None
+
+
+def blocked_reason(text):
+    for rx, reason in _BLOCK_PATTERNS:
+        if rx.search(text or ''):
+            return reason
+    return None
+
+
 def log(msg, level=LOGDEBUG, component=None):
+    global BLOCKED
+    if isinstance(msg, str) and 'Content of request:' in msg:
+        BLOCKED = blocked_reason(msg)
+        if len(msg) > 1500:  # whole web pages (4,600 lines for one Pornhub gate) were dumped into kodi.log
+            title = _re.search(r'<title>(.*?)</title>', msg, _re.S | _re.I)
+            msg = '%s ... [page truncated; title: %s; %s]' % (msg[:600], title.group(1).strip()[:150] if title else '?',
+                                                               BLOCKED or 'no known block page detected')
     req_level = level
     # override message level to force logging when addon logging turned on
     if kodi.get_setting('addon_debug') == 'true' and level == LOGDEBUG:

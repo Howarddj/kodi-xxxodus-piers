@@ -17,9 +17,9 @@ If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.
 
 | Add-on | Version | Source | Changes |
 |---|---|---|---|
-| `plugin.video.xxx-o-dus` | 99.00.037 | Stream Army 5.00.028 | Patched (see below) |
-| `script.module.echo` | 99.00.002 | Stream Army 5.00.000 | Patched |
-| `script.xxxodus.scrapers` | 99.00.023 | Stream Army 5.00.020 | Patched; 11 sites added from Cum With Me |
+| `plugin.video.xxx-o-dus` | 99.00.038 | Stream Army 5.00.028 | Patched (see below) |
+| `script.module.echo` | 99.00.003 | Stream Army 5.00.000 | Patched |
+| `script.xxxodus.scrapers` | 99.00.024 | Stream Army 5.00.020 | Patched; 11 sites added from Cum With Me |
 | `script.module.nemzzy` | 99.00.000 | Stream Army 12.00.000 | Patched |
 | `script.xxxodus.artwork` | 99.00.003 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |
@@ -63,6 +63,10 @@ The patched add-ons use version 99 so Stream Army releases never replace them, a
   * Monitored Performers and its online alerts fixed
   * the first-run `bit.ly` install counter removed, along with three unused links to outside servers
   * the only outside list still fetched is the "sexmovies" section's own pastebin page
+* **99.00.038** (from a user's kodi.log):
+  * Live XXX Channels, Pandamovies (now `.pw`), Watchpornfree (now `.info`), Freeomovie Next Page and the Chaturbate menus fixed
+  * pages that are UK age-verification gates or Cloudflare country blocks are recognised and reported as such, and are no longer written to the log in full
+  * in the UK, Aylo's sites (Pornhub, Pornhub Gay, YouPorn, Redtube, Tube8, Thumbzilla) refuse visitors without an account verified before 2 February 2026; no add-on change can get round that
 * **Kept:** the first-run 18+ confirmation and the optional parental-control lock.
 * **Readable source:** the obfuscated `default.py`, `menus.py` and `lover.py` were replaced with readable source.
 

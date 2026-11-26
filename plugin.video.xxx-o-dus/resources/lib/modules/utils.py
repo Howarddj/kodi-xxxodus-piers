@@ -159,7 +159,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
             if chaturbate:
                 if '|CHAT|' in url: check_url = url.split('|CHAT|')[0]
                 else: check_url = url.split('|SPLIT|')[0]
-                log_utils.log('URL IS %s' % (check_url), log_utils.LOGERROR)
+                log_utils.log('URL IS %s' % (check_url), log_utils.LOGDEBUG)  # was logged as an error for every row
                 if check_url in str(chat_urls): chat = 'del'
                 else: chat = 'add'
                 

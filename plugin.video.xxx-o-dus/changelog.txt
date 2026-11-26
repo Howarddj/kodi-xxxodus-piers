@@ -1,6 +1,20 @@
 [COLOR pink]Welcome To XXX-O-DUS[/COLOR]
 
-[COLOR aqua]XXXODUS : 99.00.037 (Kodi 22 / 23 patched build)[/COLOR]
+[COLOR aqua]XXXODUS : 99.00.038 (Kodi 22 / 23 patched build)[/COLOR]
+
+[COLOR aqua]SCRAPERS : 99.00.024[/COLOR]
+
+
+[COLOR yellow]FIXED (from a user log)[/COLOR]
+[COLOR white]Live XXX Channels: the site moved its listing; channels load again[/COLOR]
+[COLOR white]Pandamovies: moved to pandamovies.pw (the old domain blocks UK visitors)[/COLOR]
+[COLOR white]Watchpornfree: moved to watchpornfree.info (the old domain no longer exists)[/COLOR]
+[COLOR white]Freeomovie and other sites: Next Page found more reliably[/COLOR]
+[COLOR white]Chaturbate: All / Female / Male / Couples / Trans rooms listed directly; tags from the tag list; Next Page works[/COLOR]
+[COLOR white]Sites that demand age verification or block your country now say so instead of "Scraping Error", and no longer dump whole web pages into the log[/COLOR]
+
+
+[COLOR aqua]XXXODUS : 99.00.037[/COLOR]
 
 [COLOR aqua]SCRAPERS : 99.00.023[/COLOR]
 

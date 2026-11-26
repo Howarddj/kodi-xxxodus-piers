@@ -2619,3 +2619,325 @@ index 0000000..64ac45d
 +            return
 +    # XXX-O-DUS's player: records Watch History and plays
 +    player.play(stream, name or base_name, iconimage, ref=url, site=base_name)
+
+
+# ---- 99.00.038: fixes from a user log ----
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/adultresolver.py b/plugin.video.xxx-o-dus/resources/lib/modules/adultresolver.py
+index 951320a..243ba9e 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/adultresolver.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/adultresolver.py
+@@ -86,7 +86,7 @@ class streamer:
+             
+             elif 'porn.com' in url: u = self.generic(url)
+             
+-            elif 'pandamovies.me' in url: u = self.pandamovie(url)
++            elif 'pandamovies.me' in url or 'pandamovies.pw' in url: u = self.pandamovie(url)
+ 
+             elif 'winporn.com' in url: u = self.winporn(url)
+ 
+@@ -167,7 +167,7 @@ class streamer:
+             
+             elif 'teenpornsite.net' in url: u = self.teenpornsite(url)
+             
+-            elif 'watchpornfree.watch' in url: u = self.watchpornfree(url)
++            elif 'watchpornfree.' in url: u = self.watchpornfree(url)
+             
+             elif 'pornhd.com' in url: u = self.pornhd(url)
+             
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/helper.py b/plugin.video.xxx-o-dus/resources/lib/modules/helper.py
+index e49d742..1c174ee 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/helper.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/helper.py
+@@ -64,7 +64,16 @@ class scraper:
+                 dirlst.append({'name': kodi.giveColor('Next Page -->','white'), 'url': url, 'mode': mode, 'icon': icon, 'fanart': fanart, 'description': 'Load More......', 'folder': True})
+             else: 
+                 r = client.request(url)
+-                url2 = re.findall(r'%s' % pattern,r)[0]
++                found = re.findall(r'%s' % pattern,r)
++                if not found:
++                    # site-specific pattern missed: try the standard forms (Freeomovie broke this way)
++                    for fb in (r'''<link[^>]+rel=['"]next['"][^>]*href=['"]([^'"]+)''',
++                               r'''<a[^>]+class=['"][^'"]*next[^'"]*['"][^>]*href=['"]([^'"]+)''',
++                               r'''<a[^>]+href=['"]([^'"]+)['"][^>]*class=['"][^'"]*next[^'"]*['"]''',
++                               r'''<a[^>]+href=['"]([^'"]+)['"][^>]*rel=['"]next['"]'''):
++                        found = re.findall(fb, r)
++                        if found: break
++                url2 = found[0]
+                 if parse:
+                     url2 = urljoin(parse,url2)
+                 elif '&amp;' in url2: url2 = url2.replace('&amp;','&')
+diff --git a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+index 65bf854..3e4ea9f 100644
+--- a/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
++++ b/plugin.video.xxx-o-dus/resources/lib/modules/utils.py
+@@ -159,7 +159,7 @@ def buildDir(items, content='dirs', cm=None, search=False, stopend=False, isVide
+             if chaturbate:
+                 if '|CHAT|' in url: check_url = url.split('|CHAT|')[0]
+                 else: check_url = url.split('|SPLIT|')[0]
+-                log_utils.log('URL IS %s' % (check_url), log_utils.LOGERROR)
++                log_utils.log('URL IS %s' % (check_url), log_utils.LOGDEBUG)  # was logged as an error for every row
+                 if check_url in str(chat_urls): chat = 'del'
+                 else: chat = 'add'
+                 
+diff --git a/script.module.echo/lib/kodi.py b/script.module.echo/lib/kodi.py
+index a92edd5..a2d796a 100644
+--- a/script.module.echo/lib/kodi.py
++++ b/script.module.echo/lib/kodi.py
+@@ -206,6 +206,11 @@ def notify(header=None, msg='', duration=2000, sound=None, icon_path=None):
+     if header is None: header = get_name()
+     if sound is None: sound = get_setting('mute_notifications') == 'false'
+     if icon_path is None: icon_path = os.path.join(get_path(), 'icon.png')
++    if msg.startswith('Scraping Error'):
++        try:
++            import log_utils
++            if log_utils.BLOCKED: msg, duration = log_utils.BLOCKED, max(duration, 6000)
++        except Exception: pass
+     try:
+         xbmcgui.Dialog().notification(header, msg, icon_path, duration, sound)
+     except:
+diff --git a/script.module.echo/lib/log_utils.py b/script.module.echo/lib/log_utils.py
+index 2b2ae42..b3d9c60 100644
+--- a/script.module.echo/lib/log_utils.py
++++ b/script.module.echo/lib/log_utils.py
+@@ -38,7 +38,33 @@ if enabled_comp:
+ else:
+     enabled_comp = None
+ 
++import re as _re
++# Pages that mean "this site won't serve you", not "the site changed": UK Online Safety Act age gates,
++# Cloudflare country/firewall blocks. Remembered so kodi.notify() can say so instead of "Scraping Error".
++_BLOCK_PATTERNS = [
++    (_re.compile(r'Online Safety Act|verify (that )?you(r age| are 18)|Age Verification Page|age[ _-]?verification', _re.I),
++     'Site requires age verification in your country'),
++    (_re.compile(r'used Cloudflare to restrict access|Access denied \| |Sorry, you have been blocked|Error 1020|Error 1009', _re.I),
++     'Site blocks access from your country or network'),
++]
++BLOCKED = None
++
++
++def blocked_reason(text):
++    for rx, reason in _BLOCK_PATTERNS:
++        if rx.search(text or ''):
++            return reason
++    return None
++
++
+ def log(msg, level=LOGDEBUG, component=None):
++    global BLOCKED
++    if isinstance(msg, str) and 'Content of request:' in msg:
++        BLOCKED = blocked_reason(msg)
++        if len(msg) > 1500:  # whole web pages (4,600 lines for one Pornhub gate) were dumped into kodi.log
++            title = _re.search(r'<title>(.*?)</title>', msg, _re.S | _re.I)
++            msg = '%s ... [page truncated; title: %s; %s]' % (msg[:600], title.group(1).strip()[:150] if title else '?',
++                                                               BLOCKED or 'no known block page detected')
+     req_level = level
+     # override message level to force logging when addon logging turned on
+     if kodi.get_setting('addon_debug') == 'true' and level == LOGDEBUG:
+diff --git a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+index 02d29d2..69fa7fb 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
++++ b/script.xxxodus.scrapers/lib/scrapers/chaturbate.py
+@@ -45,10 +45,19 @@ def _get_json(url):
+     # requests.exceptions.JSONDecodeError and the whole menu failed.
+     try:
+         r = requests.get(url, headers=headers, timeout=20)
+-        return r.json()
+     except Exception as e:
+         log_utils.log('Chaturbate request failed for %s :: %s' % (url, str(e)), log_utils.LOGERROR)
+         return None
++    try:
++        return r.json()
++    except Exception:
++        # a web page instead of data: say why if it's an age-verification / block page
++        reason = log_utils.blocked_reason(r.text)
++        title = re.search(r'<title>(.*?)</title>', r.text, re.S | re.I)
++        log_utils.log('Chaturbate answered HTTP %s with a page instead of data for %s :: title: %s :: %s'
++                      % (r.status_code, url, title.group(1).strip()[:120] if title else '?', reason or 'unknown page'), log_utils.LOGERROR)
++        if reason: kodi.notify(msg='Chaturbate: %s' % reason, duration=6000)
++        return None
+ 
+ @utils.url_dispatcher.register('%s' % menu_mode)
+ def menu():
+@@ -63,8 +72,12 @@ def menu():
+     fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
+     dirlst.append({'name': 'Monitored Performers', 'url': 'none', 'mode': 30, 'icon': icon, 'fanart': fanarts, 'folder': True})
+     dirlst.append({'name': 'Search By Username', 'url': 'none', 'mode': 32, 'icon': icon, 'fanart': fanarts, 'folder': False})
++    # rooms used to be reachable only through the tag list below; list them directly too
++    rooms = 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&limit=100&offset=0'
++    dirlst.append({'name': 'All Rooms', 'url': rooms, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
++    for g, label in (('f', 'Female'), ('m', 'Male'), ('c', 'Couples'), ('t', 'Trans')):
++        dirlst.append({'name': '%s Rooms' % label, 'url': rooms + '&genders=%s' % g, 'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'folder': True})
+     dirlst.append({'name': 'Rooms By Tag', 'url': 'tags', 'mode': 302, 'icon': icon, 'fanart': fanarts, 'folder': True})
+-    if link is None: kodi.notify(msg='Chaturbate tag list unavailable right now', duration=5000)
+     for i in (link or {}).get('hashtags', []):
+         try:
+             cat = i['hashtag']#.title()
+@@ -106,14 +119,28 @@ def content(url,searched=False):
+         kodi.notify(msg='No Content Found')
+         quit()
+         
+-    search_pattern = '''<li><a\\s*href=['"]([^'"]+)['"]\\s*class=['"]next endless_page_link'''
+-    parse = base_domain
+-    helper.scraper().get_next_page(content_mode,url,search_pattern,filename,parse)
++    # the room list is JSON: page by offset (the old HTML 'next' pattern never matched)
++    m = re.search(r'offset=(\d+)', url)
++    if len(data) >= 100 and m:
++        nxt = url.replace(m.group(0), 'offset=%d' % (int(m.group(1)) + 100))
++        helper.scraper().get_next_page(content_mode, nxt + '|GOT_URL', None, filename)
++    else:
++        xbmcplugin.endOfDirectory(kodi.syshandle, cacheToDisc=False)
+     
+ @utils.url_dispatcher.register('302', ['url'])
+ def byTags(url):
+-    #dialog.ok("URL",str(url))
+-    c = requests.get(base_domain, headers=headers).text
++    # the tag API first (the homepage carries no /tag/ links any more), homepage scrape as a fallback
++    data = _get_json('https://chaturbate.com/api/ts/hashtags/tag-table-data/?sort=-vc&page=1&g=&limit=100') if url == 'tags' else None
++    if data and data.get('hashtags'):
++        icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/icon.png' % filename))
++        fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
++        dirlst = [{'name': '%s (%s viewers)' % (t['hashtag'].title(), t.get('viewer_count', '?')),
++                   'url': 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&hashtags=%s&limit=100&offset=0' % quote_plus(t['hashtag']),
++                   'mode': content_mode, 'icon': icon, 'fanart': fanarts, 'description': t['hashtag'], 'folder': True}
++                  for t in data['hashtags'] if t.get('hashtag')]
++        buildDirectory(dirlst)
++        return
++    c = requests.get(base_domain, headers=headers, timeout=20).text
+     soup = BeautifulSoup(c, 'html.parser')
+     tags = soup.find_all("a", href=lambda href: href and "/tag/" in href)
+     #dialog.ok("TAGS",str(tags))
+diff --git a/script.xxxodus.scrapers/lib/scrapers/livexxx.py b/script.xxxodus.scrapers/lib/scrapers/livexxx.py
+index 2c89100..9084c3e 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/livexxx.py
++++ b/script.xxxodus.scrapers/lib/scrapers/livexxx.py
+@@ -13,7 +13,7 @@ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ dialog = xbmcgui.Dialog()
+ filename     = os.path.basename(__file__).split('.')[0]
+-base_domain  = 'https://adult-tv-channels.com/?0'
++base_domain  = 'https://adult-tv-channels.com/'  # '/?0' now answers 'Page not found'
+ base_name    = 'Live XXX Channels'#base_domain.replace('www.',''); base_name = re.findall('(?:\/\/|\.)([^.]+)\.',base_name)[0].title()
+ type         = 'livexxx'
+ menu_mode    = 330 
+@@ -65,6 +65,10 @@ def content(url,searched=False):
+         c = client.request(url)
+         soup = BeautifulSoup(c,'html.parser')
+         r = soup.find_all('figure', class_={'entry-item-thumb'})
++        if not r:
++            # fall back to the 'Recent channels' list every page of the site carries (names, no logos)
++            box = soup.find('aside', class_={'widget_recent_entries'})
++            r = [('link', a) for a in (box.find_all('a') if box else []) if a.get('href', '').startswith('http')]
+         if ( not r ) and ( not searched ):
+             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(c)), log_utils.LOGERROR)
+             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
+@@ -79,6 +83,13 @@ def content(url,searched=False):
+         
+     for i in r:
+         try:
++            if isinstance(i, tuple):   # fallback list entry
++                a = i[1]
++                chan_name = a.text.replace('Online', '').replace('online', '').strip()
++                fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
++                icon = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/icon.png' % filename))
++                dirlst.append({'name': chan_name, 'url': a['href'], 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': chan_name, 'folder': False})
++                continue
+             chan_name = i.img['alt'].replace('official logo','').replace('channel logo','').replace('logo','').title()
+             chan_link = i.a['href']
+             chan_logo = i.img['src']
+diff --git a/script.xxxodus.scrapers/lib/scrapers/panda_movies.py b/script.xxxodus.scrapers/lib/scrapers/panda_movies.py
+index 6104edd..41fca47 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/panda_movies.py
++++ b/script.xxxodus.scrapers/lib/scrapers/panda_movies.py
+@@ -16,7 +16,7 @@ headers = {'User-Agent' : 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; Trid
+ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
+ translatePath = xbmc.translatePath if PY2 else xbmcvfs.translatePath
+ filename     = 'pandamovie'
+-base_domain  = 'https://pandamovies.me/'
++base_domain  = 'https://pandamovies.pw/'  # pandamovies.me answers 'Access denied' (Cloudflare) from the UK
+ base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
+ type         = 'movies'
+ menu_mode    = 297
+@@ -24,13 +24,13 @@ content_mode = 298
+ player_mode  = 810
+ 
+ search_tag   = 0
+-search_base  = urljoin(base_domain,'search.fcgi?query=%s')
++search_base  = urljoin(base_domain,'?s=%s')
+ 
+ @utils.url_dispatcher.register('%s' % menu_mode)
+ def menu():
+     
+ 	lover.checkupdates()
+-	url = urljoin(base_domain,'category/porn-movies/')
++	url = urljoin(base_domain,'movies')
+ 	content(url)
+ 	# try:
+ 		# url = urljoin(base_domain,'xxx/movies/')
+@@ -67,10 +67,10 @@ def menu():
+ def content(url,searched=False):
+     try:
+         if url == '':
+-            url = urljoin(base_domain,'category/porn-movies/')
++            url = urljoin(base_domain,'movies')
+         link = requests.get(url,headers=headers).text
+         soup = BeautifulSoup(link, 'html.parser')
+-        r = soup.find_all('a', class_={'thumb'})
++        r = soup.find_all('div', class_={'ml-item'}) or soup.find_all('a', class_={'thumb'})  # .pw layout, then the old one
+         if ( not r ) and ( not searched ):
+             log_utils.log('Scraping Error in %s:: Content of request: %s' % (base_name.title(),str(link)[:1000]), log_utils.LOGERROR)
+             kodi.notify(msg='Scraping Error: Info Added To Log File', duration=6000, sound=True)
+@@ -85,14 +85,16 @@ def content(url,searched=False):
+         
+     for i in r:
+         try:
+-            title = i.img['alt']
+-            mediaurl = i['href']
+-            icon = i.img['src']
++            a = i if i.name == 'a' else i.a
++            title = a.get('title') or a.get('oldtitle') or i.img.get('alt') or a['href'].rstrip('/').split('/')[-1].replace('-', ' ').title()
++            mediaurl = a['href']
++            icon = i.img.get('data-lazy-src') or i.img.get('data-src') or i.img.get('src', '')
++            desc_tag = i.find('p', class_={'f-desc'}) if i.name != 'a' else None
+             #if '.gif' in icon: icon = i.img['data-wpfc-original-src']
+             #dialog.ok("Media",str(icon))
+             #quit()
+             fanarts = translatePath(os.path.join('special://home/addons/script.xxxodus.artwork', 'resources/art/%s/fanart.jpg' % filename))
+-            dirlst.append({'name': title, 'url': mediaurl, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': 'No Desc', 'folder': False})
++            dirlst.append({'name': title, 'url': mediaurl, 'mode': player_mode, 'icon': icon, 'fanart': fanarts, 'description': desc_tag.text.strip() if desc_tag else title, 'folder': False})
+         except Exception as e:
+             log_utils.log('Error adding a menu item in %s:: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
+ 
+@@ -107,7 +109,8 @@ def content(url,searched=False):
+     if not searched:
+         
+         try:
+-            search_pattern = '''link rel=['"]next['"].*?href=['"]([^'"]+)'''
+-            helper.scraper().get_next_page(content_mode,url,search_pattern,filename)
++            m = re.search(r'/page/(\d+)/?$', url)
++            nxt = re.sub(r'/page/\d+/?$', '/page/%d/' % (int(m.group(1)) + 1), url) if m else url.rstrip('/') + '/page/2/'
++            helper.scraper().get_next_page(content_mode, nxt + '|GOT_URL', None, filename)
+         except Exception as e: 
+             log_utils.log('Error getting next page for %s :: Error: %s' % (base_name.title(),str(e)), log_utils.LOGERROR)
+\ No newline at end of file
+diff --git a/script.xxxodus.scrapers/lib/scrapers/watchpornfree.py b/script.xxxodus.scrapers/lib/scrapers/watchpornfree.py
+index abb61a4..818f4f3 100644
+--- a/script.xxxodus.scrapers/lib/scrapers/watchpornfree.py
++++ b/script.xxxodus.scrapers/lib/scrapers/watchpornfree.py
+@@ -14,7 +14,7 @@ Headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit
+ buildDirectory = utils.buildDir #CODE BY NEMZZY AND ECHO
+ dialog = xbmcgui.Dialog()
+ filename     = os.path.basename(__file__).split('.')[0]
+-base_domain  = 'https://watchpornfree.watch'
++base_domain  = 'https://watchpornfree.info'  # watchpornfree.watch no longer resolves
+ base_name    = base_domain.replace('www.',''); base_name = re.findall('(?:\\/\\/|\\.)([^.]+)\\.',base_name)[0].title()
+ type         = 'movies'
+ menu_mode    = 324
+@@ -26,7 +26,7 @@ search_base  = urljoin(base_domain,'search/%s').replace(' ','+')
+ 
+ @utils.url_dispatcher.register('%s' % menu_mode)
+ def menu():
+-	url = 'https://watchpornfree.watch/'
++	url = base_domain + '/'
+ 	lover.checkupdates()
+ 	content(url)
+ 	# try:

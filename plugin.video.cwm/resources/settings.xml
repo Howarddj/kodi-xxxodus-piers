@@ -1,10 +1,6 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-<category label="Cam Monitor Settings">
-	<setting id="Monitor" type="bool" label="Alert Performers Online (Changes require kodi reboot to take effect)" default="false" visible="true"/>
-</category>
-<category label="Chat Settings">
-	<setting id="ShowChat" type="bool" label="Show Chat Window : " default="true"/>
-	<setting id="Username" type="text" label="Chat Username : " default="" visible="true"/>
-</category>
-
+	<category label="Cam Monitor Settings">
+		<setting id="Monitor" type="bool" label="Alert me when a favourite performer comes online (restart Kodi after changing)" default="false"/>
+	</category>
 </settings>

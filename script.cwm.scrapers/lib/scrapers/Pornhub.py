@@ -9,7 +9,7 @@ Base_Domain = 'https://www.pornhub.com'
 cookies = {'accessAgeDisclaimerPH=':'1',
            'accessAgeDisclaimerUK=' : '1' }
 SiteName = 'PornHub'
-DefaultImage = 'https://raw.githubusercontent.com/nemesis668/repository.streamarmy18-19/917d31e44e35d06957f37e1e65bf89b2c549d36d/plugin.video.cwm/icon.png'
+DefaultImage = 'special://home/addons/plugin.video.cwm/icon.png'  # was loaded from Stream Army's GitHub
 class Scraper:
     def __init__(self):
         self.Base = 'https://www.pornhub.com'

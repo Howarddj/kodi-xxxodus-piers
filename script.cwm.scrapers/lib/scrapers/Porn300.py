@@ -7,7 +7,7 @@ dialog = xbmcgui.Dialog()
 headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82'}
 Base_Domain = 'https://www.porn300.com/'
 SiteName = 'Porn300'
-DefaultImage = 'https://raw.githubusercontent.com/nemesis668/repository.streamarmy18-19/917d31e44e35d06957f37e1e65bf89b2c549d36d/plugin.video.cwm/icon.png'
+DefaultImage = 'special://home/addons/plugin.video.cwm/icon.png'  # was loaded from Stream Army's GitHub
 class Scraper:
     def __init__(self):
         self.Base = 'https://www.porn300.com/?page=1'

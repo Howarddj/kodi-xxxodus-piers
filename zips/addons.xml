@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.cwm" name="Cum With Me" version="99.00.001" provider-name="Nemzzy668">
+<addon id="plugin.video.cwm" name="Cum With Me" version="99.01.000" provider-name="Nemzzy668">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
     <import addon="script.module.requests" />
-	<import addon="script.module.pyxbmct" />
 	<import addon="script.module.beautifulsoup4" />
 	<import addon="script.module.resolveurl" />
-	<import addon="script.cwm.scrapers" version="99.00.015"/>
-	<import addon="script.module.nemzzy" version="99.00.000"/>
+	<import addon="script.cwm.scrapers" version="99.00.016"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="Main.py">
     <provides>video</provides>
@@ -16,8 +14,8 @@
   <extension point="xbmc.service" library="service.py" start="startup">
   </extension>
   <extension point="xbmc.addon.metadata">
-    <summary lang="en">Ultimate GUI XXX Addon</summary>
-    <description lang="en">A GUI XXX Addon for Kodi. Patched for Kodi 22 / 23: no PIN, no online version check or usage tracking, Python 3.12+ fixes, plain look.</description>
+    <summary lang="en">Live channels, cams, movies and tube sites as Kodi lists</summary>
+    <description lang="en">Live adult TV channels, Chaturbate cams, movies and 20 tube sites as normal Kodi lists, so your skin controls the look. Patched for Kodi 22 / 23: no PIN, no Stream Army servers contacted, Python 3.12+ fixes.</description>
     <platform>all</platform>
 	<assets>
         <icon>icon.png</icon>
@@ -101,7 +99,7 @@
   </extension>
 </addon>
 
-<addon id="script.cwm.scrapers" name="CumWithMe Scrapers" version="99.00.015" provider-name="@Nemzzy668">
+<addon id="script.cwm.scrapers" name="CumWithMe Scrapers" version="99.00.016" provider-name="@Nemzzy668">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 		<import addon="script.module.requests" />

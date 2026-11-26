@@ -1,353 +1,477 @@
+# -*- coding: utf-8 -*-
+"""
+Cum With Me as a normal Kodi list add-on (Kodi 22 / 23).
+
+The original was a full-screen pyxbmct window with its own artwork, a chat room and online
+counters served from Stream Army's pinsystem.co.uk. This version lists everything as ordinary
+Kodi folders and items, so the skin decides the look (views, fonts, colours, artwork), and it
+makes no connection to Stream Army servers: only the video sites themselves are contacted.
+"""
+import os
+import re
+import sys
+import sqlite3
+from urllib.parse import urlencode, parse_qsl, quote_plus, urlparse
+
 import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
-import os
-import sys
-import time
-import pyxbmct
-import requests
-from resources.libs import net  # default timeout for every request
 import xbmcvfs
-from resources.libs import look  # one text colour: strips [COLOR]/[B]/[I] from all window text
-import Cats
-from datetime import datetime
-import random
-import string
-import re
-####################################################################
-###########################CUSTOM OPTIONS###########################
-_addon_id_	= 'plugin.video.cwm'
-MainTextColour = 'gold'
-AddonTitle = ('[COLOR %s][B]Cum With Me[/B][/COLOR]' % MainTextColour)
-####################################################################
-_self_		= xbmcaddon.Addon(id=_addon_id_)
-_images_	= '/resources/artwork/'
-dialog = look.PlainDialog()
-Date = time.strftime("%d/%m")
-get_setting = _self_.getSetting
-set_setting = _self_.setSetting
-Skin_Path = xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_ + _images_))
-Icon			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'icon.png'))
-AddonIcon		= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'icon.png'))
-FanArt			= xbmcvfs.translatePath(os.path.join('special://home/addons/' + _addon_id_, 'fanart.jpg'))
-Background_Image	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AddonBG.png'))
-AppIcon	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AppIconRound.png'))  # smaller, rounded corners
-AppTitle	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'AppTitle3.gif'))
-LiveF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'LiveF1.png'))
-LiveNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'LiveNF.png'))
-CamF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'CamF1.png'))
-CamNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'CamNF.png'))
-MoviesF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'MoviesF1.png'))
-MoviesNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'MoviesNF.png'))
-SitesF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'SitesF1.png'))
-SitesNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'SitesNF.png'))
-ExitF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'ExitF1.png'))
-ExitNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'ExitNF.png'))
-SendF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'MessageF1.png'))
-SendNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'MessageNF.png'))
-RefreshF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'RefreshF1.png'))
-RefreshNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'RefreshNF.png'))
-UserF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'UserchangeF2.png'))
-UserNF	= xbmcvfs.translatePath(os.path.join(Skin_Path, 'UserchangeNF1.png'))
-BackgroundBox = xbmcvfs.translatePath(os.path.join(Skin_Path, 'BackBox.png'))
-AddonInfoUrl = 'https://pinsystem.co.uk/CumWithMe/CumWithMeNotice.txt'
-ChatMsgsUrl = 'https://pinsystem.co.uk/CumWithMe/Chat/getmsg.php'
-ChatMsgSendurl = 'https://pinsystem.co.uk/CumWithMe/Chat/addmsg.php?user=%s&msg=%s'
-ApiUrl = 'https://pinsystem.co.uk/CumWithMe/api.php'
-CheckMonitor = get_setting('Monitor')
-if CheckMonitor == 'false': CheckMon = '[COLOR red]OFF[/COLOR]'
-if CheckMonitor == 'true': CheckMon = '[COLOR lime]ON[/COLOR]'
-# CheckPin() removed: it required an access token from pinsystem.co.uk on every launch
-def MainWindow():
-    window = Main('cwm')
-    window.doModal()
-    del window
-def MoveToCat(self,option):
-    ApiInfo(self)
-    Cats.MainWindow(option)
-def tick(self):
-    time2 = time.strftime("%I:%M %p")
-    self.TIME.setLabel(str(time2))
-def QuitAddon(self):
-    self.close()
-def GetAddonInfo(self):
-    try:
-        link = requests.get(AddonInfoUrl).text
-    except Exception as e:
-        xbmc.log('CWM: notice unavailable :: %s' % e, xbmc.LOGINFO)
-        link = 'Cum With Me (Kodi 22 / 23 patched build)'
-    self.AddonTextInfo.setText(link)
-def GetChatMsgs(self):
-    ApiInfo(self)
-    chatboxshow = get_setting('ShowChat')
-    if chatboxshow == 'true':
-        try:
-            link = requests.get(ChatMsgsUrl).json()
-            messages = []
-            reservednames = ["nemzzy", "nemzzzy", "nemzzyy","nemesis","nemzzy668","manc","_manc","_manc_","lordjd","jdlord"]
-            for i in link:
-                Name = i['items']['Name']
-                Message = i['items']['Message']
-                Time = i['items']['Time']
-                if any(x in Name.lower() for x in reservednames):
-                    Msg = ('[COLOR magenta]%s : [COLOR purple]%s -  [COLOR white]%s[/COLOR]\n' % (Time,Name,Message))
-                else:
-                    Msg = ('[COLOR magenta]%s : [COLOR green]%s -  [COLOR white]%s[/COLOR]\n' % (Time,Name,Message))
-                messages.append(Msg)
-            chatstring = ''
-            for message in messages:
-                chatstring = chatstring+message
-            self.ChatBox.setText(chatstring)
-            dialog.notification(AddonTitle, '[COLOR pink]Chat Window Refreshed[/COLOR]', AddonIcon, 2500)
-            GetAddonInfo(self)
-        except:
-            self.ChatBox.setText('[COLOR magenta]Admin Message : [COLOR purple]Nemzzy -  [COLOR white]Welcome to CumWithMe, Enjoy the chat room, don\'t be a keyboard warrior! Your not hard, not yet anyway! Enjoy the porn[/COLOR]\n')
-    else:
-        self.ChatBox.setText('[COLOR magenta]Admin Message : [COLOR purple]Nemzzy -  [COLOR white]You\'ve turned chat off in settings, turn on again to show messages[/COLOR]\n')
-def SendChatMsg(self):
-    checkusername = get_setting('Username')
-    reservednames = ["nemzzy", "nemzzzy", "nemzzyy","nemesis","nemzzy668","manc","_manc","_manc_","lordjd","jdlord","admin","nemz","jd","nemz","streamarmy","streamarmyteam","streamarmyadmin","adminstreamarmy"]
-    if any(x in checkusername.lower() for x in reservednames):
-        checkadmin = get_setting('adminchatpass')
-        if checkadmin.lower() == 'manclovescock': pass
-        else:
-            dialog.ok(AddonTitle,"You have tried to use a name reserved for Stream Army Team Members, Please enter the password to continue")
-            string =''
-            keyboard = xbmc.Keyboard(string, 'Enter Password')
-            keyboard.doModal()
-            if keyboard.isConfirmed():
-                string = keyboard.getText()
-                if string.lower() == 'manclovescock':
-                    set_setting(id='adminchatpass', value=string.lower())
-                    SendChatMsg(self)
-                else:
-                    dialog.ok(AddonTitle,"Wrong Password, Please Choose A Different Chat Name")
-                    set_setting(id='Username', value='')
-                    SendChatMsg(self)
-            else: return  # was quit(): that killed the whole add-on from inside the window
-    if checkusername == '':
-        string =''
-        keyboard = xbmc.Keyboard(string, 'You need to set a chat username first ( Some Admin Names reserved! )')
-        keyboard.doModal()
-        if keyboard.isConfirmed():
-            string = keyboard.getText()
-            if len(string)>1:
-                term = string.lower()
-                if not any(x in term.lower() for x in reservednames):
-                    if len(string)>1:
-                        set_setting(id='Username', value=string.title())
-                        SendChatMsg(self)
-                else:
-                    dialog.ok(AddonTitle,"You have tried to use a name reserved for Stream Army Team Members, Please enter the password to continue")
-                    stringpass =''
-                    keyboard = xbmc.Keyboard(stringpass, 'Enter Password')
-                    keyboard.doModal()
-                    if keyboard.isConfirmed():
-                        stringpass = keyboard.getText()
-                        if stringpass.lower() == 'manclovescock':
-                            set_setting(id='adminchatpass', value=stringpass.lower())
-                            set_setting(id='Username', value=string.title())
-                            SendChatMsg(self)
-                        else:
-                            dialog.ok(AddonTitle,"Wrong Password, Please Choose A Different Chat Name")
-                            SendChatMsg(self)
-        else: return  # was quit(): that killed the whole add-on from inside the window
-    else:
-        string =''
-        keyboard = xbmc.Keyboard(string, 'Type Chat Message ( Don\'t be offensive )')
-        keyboard.doModal()
-        if keyboard.isConfirmed():
-            string = keyboard.getText()
-            if len(string)>1:
-                term = string.lower()
-                term = term.replace(' ','%20')
-                try:
-                    sendmessage = requests.get(ChatMsgSendurl % (checkusername,term))
-                except Exception as e:
-                    xbmc.log('CWM: chat send failed :: %s' % e, xbmc.LOGINFO)
-                    dialog.notification(AddonTitle, 'Chat is unavailable right now', AddonIcon, 2500)
-                    return
-                dialog.notification(AddonTitle, '[COLOR pink]Message Sent[/COLOR]', AddonIcon, 2500)
-                GetChatMsgs(self)
-            else:
-                dialog.notification(AddonTitle, '[COLOR pink]Message needs to be longer[/COLOR]', AddonIcon, 2500)
-def RandomUserID(self):
-    pass  # used to register a random user ID with pinsystem.co.uk on every launch (usage tracking); removed
-def ApiInfo(self):
-    try:
-        link = requests.get(ApiUrl).json()
-        for data in link:
-            usersonline = data['usercount']['Users']
-            camsonline = data['usercount']['CamsOnline']
-            videos = data['usercount']['Videos']
-            self.USERS.setLabel('Current Cummers Online : %s' % usersonline)
-            self.CHANNELS.setLabel('Live Cams Online : %s' % camsonline)
-            self.MOVIES.setLabel('Movies Available : %s' % videos)
-    except: pass
-def ChangeUserName(self):
-    reservednames = ["nemzzy", "nemzzzy", "nemzzyy","nemesis","nemzzy668","manc","_manc","_manc_","lordjd","jdlord","admin","nemz","jd","nemz","streamarmy","streamarmyteam","streamarmyadmin","adminstreamarmy"]
-    string =''
-    keyboard = xbmc.Keyboard(string, 'Change User Name')
-    keyboard.doModal()
-    if keyboard.isConfirmed():
-        string = keyboard.getText()
-        if len(string)>3:
-            term = string.title()
-            if any(x in term.lower() for x in reservednames):
-                checkadmin = get_setting('adminchatpass')
-                if checkadmin.lower() == 'manclovescock':
-                    set_setting('Username', term)
-                    dialog.notification(AddonTitle, '[COLOR pink]Username Set[/COLOR]', AddonIcon, 2500)
-                else:
-                    dialog.ok(AddonTitle,"You have tried to use a name reserved for Stream Army Team Members, Please enter the password to continue")
-                    string =''
-                    keyboard = xbmc.Keyboard(string, 'Enter Password')
-                    keyboard.doModal()
-                    if keyboard.isConfirmed():
-                        string = keyboard.getText()
-                        if string.lower() == 'manclovescock':
-                            set_setting(id='adminchatpass', value=string.lower())
-                            set_setting('Username', term)
-                            dialog.notification(AddonTitle, '[COLOR pink]Username Set[/COLOR]', AddonIcon, 2500)
-                        else:
-                            dialog.ok(AddonTitle,"Wrong Password, Please Choose A Different Chat Name")
-                            set_setting(id='Username', value='')
-                            ChangeUserName(self)
-                    else: return  # was quit(): that killed the whole add-on from inside the window
-            else:
-                set_setting('Username', term)
-                dialog.notification(AddonTitle, '[COLOR pink]Username Set[/COLOR]', AddonIcon, 2500)
-        else:
-            dialog.notification(AddonTitle, '[COLOR pink]Username needs to be longer[/COLOR]', AddonIcon, 2500)
-def ScraperCheck(self):
-    try:
-        scrapertheirs = xbmcvfs.translatePath(os.path.join('special://home/addons/' + 'script.cwm.scrapers', 'addon.xml'))
-        with open (scrapertheirs) as f:
-            yourversion = re.findall('<addon id="script.cwm.scrapers".*?version="(.*?)"',f.read(),flags=re.DOTALL)[0]
-        # no online version check: this build is updated from the Howarddj repository
-        self.ScraperInfo = pyxbmct.Label('Scrapers : %s' % yourversion, textColor='0xFFFFFFFF', font='font12', alignment=pyxbmct.ALIGN_CENTER)
-        self.placeControl(self.ScraperInfo,  12, 10, 12, 40)
-    except:
-        self.ScraperInfo = pyxbmct.Label('Scrapers : not installed', textColor='0xFFFFFFFF', font='font12')
-        self.placeControl(self.ScraperInfo,  12, 10, 12, 40)
-class Main(pyxbmct.AddonFullWindow):
-    xbmc.executebuiltin("Dialog.Close(busydialog)")
-    def __init__(self, title='cwm'):
-        super(Main, self).__init__(title)
-        self.setGeometry(1280, 720,150, 50)
-        # no background image: pyxbmct's plain dark window background shows instead
-        self.set_info_controls()
-        self.set_active_controls()
-        self.set_navigation()
-        self.connect(pyxbmct.ACTION_NAV_BACK, lambda:QuitAddon(self))
-        AppLogo = pyxbmct.Image(AppIcon, aspectRatio=2)
-        self.placeControl(AppLogo, -8, 46, 20, 4)
-        AppHeader = pyxbmct.Label('Cum With Me', textColor=look.TEXT_COLOUR, font='font13_title')
-        self.placeControl(AppHeader, -8, 0, 12, 20)
-        self.AddonInfo = pyxbmct.Label('ADDON INFORMATION',textColor='0xFFFFFFFF', font='font14')
-        self.placeControl(self.AddonInfo,  20, 26, 12, 15)
-        self.ChatInfo = pyxbmct.Label('CHAT ROOM',textColor='0xFFFFFFFF', font='font14')
-        self.placeControl(self.ChatInfo,  84, 26, 12, 15)
-        self.AddonTextInfo	=	pyxbmct.TextBox()
-        self.placeControl(self.AddonTextInfo, 26, 14, 60, 34)
-        self.AddonTextInfo.autoScroll(1000, 1500, 2000)
-        GetAddonInfo(self)
-        self.setFocus(self.LiveChanBut)
-        RandomUserID(self)
-        self.ChatBox	=	pyxbmct.TextBox()
-        self.placeControl(self.ChatBox, 90, 14, 54, 34)
-        self.ChatBox.autoScroll(2000, 800, 2000)
-        GetChatMsgs(self)
-        ScraperCheck(self)
-    def set_info_controls(self):
-        self.TIME = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
-        self.USERS = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
-        self.CHANNELS = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
-        self.MonitorStatus = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
-        self.MOVIES = pyxbmct.Label('',textColor='0xFFFFFFFF', font='font14')
-        self.placeControl(self.TIME, 158,47, 12, 10)
-        self.placeControl(self.USERS, 158,0, 12, 20)
-        self.placeControl(self.CHANNELS, 150,0, 12, 20)
-        self.placeControl(self.MonitorStatus, 150,10, 12, 20)
-        self.placeControl(self.MOVIES, 142,0, 12, 20)
-        time2 = time.strftime("%I:%M %p")
-        self.TIME.setLabel(str(time2))
-        self.USERS.setLabel('Current Cummers Online : ')
-        self.CHANNELS.setLabel('Live Cams Available : ')
-        self.MonitorStatus.setLabel(' | Monitor Status : %s' % CheckMon)
-        self.MOVIES.setLabel('Movies Available : ')
-    def Multi_Update(self):
-        tick(self)
-    def set_active_controls(self):
-        # T L W H
-        self.LiveChanBut = look.button('Live XXX Channels')
-        self.placeControl(self.LiveChanBut, 34, 0, 14, 10)
-        self.LiveCamBut = look.button('Live XXX Cams')
-        self.placeControl(self.LiveCamBut, 51, 0, 14, 10)
-        self.LiveMovieBut = look.button('XXX Movies')
-        self.placeControl(self.LiveMovieBut, 68, 0, 14, 10)
-        self.LiveSiteBut = look.button('XXX Sites')
-        self.placeControl(self.LiveSiteBut, 85, 0, 14, 10)
-        self.ExitSiteBut = look.button('Exit')
-        self.placeControl(self.ExitSiteBut, 102, 0, 14, 10)
-        self.RefMsgBut = look.button('Refresh Chat')
-        self.placeControl(self.RefMsgBut, 146, 14, 11, 7)
-        self.ChangeUserBut = look.button('Change Name')
-        self.placeControl(self.ChangeUserBut, 146, 22, 11, 7)
-        self.SendMsgBut = look.button('Send Message')
-        self.placeControl(self.SendMsgBut, 146, 30, 11, 7)
-        self.connect(self.ExitSiteBut, lambda:QuitAddon(self))
-        self.connect(self.LiveChanBut, lambda:MoveToCat(self,'Live'))
-        self.connect(self.LiveCamBut, lambda:MoveToCat(self,'Cam'))
-        self.connect(self.LiveMovieBut, lambda:MoveToCat(self,'Movie'))
-        self.connect(self.LiveSiteBut, lambda:MoveToCat(self,'Sites'))
-        self.connect(self.RefMsgBut, lambda:GetChatMsgs(self))
-        self.connect(self.SendMsgBut, lambda:SendChatMsg(self))
-        self.connect(self.ChangeUserBut, lambda:ChangeUserName(self))
-        self.connectEventList(
-            [pyxbmct.ACTION_MOVE_DOWN,
-            pyxbmct.ACTION_MOVE_UP,
-            pyxbmct.ACTION_MOUSE_WHEEL_DOWN,
-            pyxbmct.ACTION_MOUSE_WHEEL_UP,
-            pyxbmct.ACTION_MOUSE_MOVE],
-            self.Multi_Update)
-    def set_navigation(self):
-        #DOWN
-        self.LiveChanBut.controlDown(self.LiveCamBut)
-        self.LiveCamBut.controlDown(self.LiveMovieBut)
-        self.LiveMovieBut.controlDown(self.LiveSiteBut)
-        self.LiveSiteBut.controlDown(self.ExitSiteBut)
-        #UP
-        self.ExitSiteBut.controlUp(self.LiveSiteBut)
-        self.LiveSiteBut.controlUp(self.LiveMovieBut)
-        self.LiveMovieBut.controlUp(self.LiveCamBut)
-        self.LiveCamBut.controlUp(self.LiveChanBut)
-        #RIGHT
-        self.LiveChanBut.controlRight(self.RefMsgBut)
-        self.LiveCamBut.controlRight(self.RefMsgBut)
-        self.LiveMovieBut.controlRight(self.RefMsgBut)
-        self.LiveSiteBut.controlRight(self.RefMsgBut)
-        self.ExitSiteBut.controlRight(self.RefMsgBut)
-        self.RefMsgBut.controlRight(self.ChangeUserBut)
-        self.ChangeUserBut.controlRight(self.SendMsgBut)
-        #LEFT
-        self.SendMsgBut.controlLeft(self.ChangeUserBut)
-        self.RefMsgBut.controlLeft(self.LiveChanBut)
-        self.ChangeUserBut.controlLeft(self.RefMsgBut)
 
-    def list_update(self):
-        pass
-def _handle():
-    try: return int(sys.argv[1])
-    except (IndexError, ValueError): return -1
+import requests
+from bs4 import BeautifulSoup
+import resolveurl
+
+from resources.libs import net  # default timeout for every request
+
+ADDON = xbmcaddon.Addon()
+ADDON_ID = ADDON.getAddonInfo('id')
+ADDON_NAME = 'Cum With Me'
+BASE = sys.argv[0]
+HANDLE = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].lstrip('-').isdigit() else -1
+ICON = xbmcvfs.translatePath('special://home/addons/%s/icon.png' % ADDON_ID)
+# no fanart on list items: the skin's own background shows, as in XXX-O-DUS
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                         'Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82'}
+LIVE_URL = 'https://adult-tv-channels.com/'
+LIVE_BASE = 'https://adult-tv-channels.com'
+MOVIE_URL = 'https://pandamovies.pw/movies'
+CAM_URL = 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false&limit=100&offset=0'
+CAM_TAGS_URL = 'https://chaturbate.com/api/ts/hashtags/tag-table-data/?sort=-vc&page=1&g=&limit=100'
+
+DB_DIR = xbmcvfs.translatePath('special://profile/addon_data/%s/databases' % ADDON_ID)
+DB = os.path.join(DB_DIR, 'cwm.db')
+
+_TAGS = re.compile(r'\[/?(?:COLOR[^\]]*|B|I|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)\]', re.I)
+
+
+def plain(text):
+    """Text colour and weight are the skin's job: drop any [COLOR]/[B]/[I] tags."""
+    return _TAGS.sub('', text).strip() if isinstance(text, str) else text
+
+
+def log(msg, level=xbmc.LOGINFO):
+    xbmc.log('[%s] %s' % (ADDON_ID, msg), level)
+
+
+def notify(msg, icon=ICON, ms=3500):
+    xbmcgui.Dialog().notification(ADDON_NAME, msg, icon, ms)
+
+
+def build_url(**query):
+    return BASE + '?' + urlencode({k: v for k, v in query.items() if v is not None})
+
+
+def get(url, referer=None):
+    h = dict(HEADERS)
+    if referer: h['Referer'] = referer
+    return requests.get(url, headers=h)
+
+
+# ---------------------------------------------------------------------------- listing helpers
+
+def add_folder(label, query, icon=None, plot='', context=None):
+    li = xbmcgui.ListItem(plain(label), offscreen=True)
+    li.setArt({'icon': icon or ICON, 'thumb': icon or ICON, 'poster': icon or ICON})
+    if plot:
+        li.getVideoInfoTag().setPlot(plain(plot))
+    if context: li.addContextMenuItems(context)
+    xbmcplugin.addDirectoryItem(HANDLE, build_url(**query), li, isFolder=True)
+
+
+def add_video(label, query, thumb=None, plot='', context=None):
+    li = xbmcgui.ListItem(plain(label), offscreen=True)
+    art = thumb or ICON
+    li.setArt({'icon': art, 'thumb': art, 'poster': art})
+    tag = li.getVideoInfoTag()
+    tag.setTitle(plain(label))
+    tag.setMediaType('video')
+    if plot: tag.setPlot(plain(plot))
+    li.setProperty('IsPlayable', 'true')
+    if context: li.addContextMenuItems(context)
+    xbmcplugin.addDirectoryItem(HANDLE, build_url(**query), li, isFolder=False)
+
+
+def add_action(label, query, icon=None, plot=''):
+    """A row that runs something (settings, notices) instead of opening a folder or playing."""
+    li = xbmcgui.ListItem(plain(label), offscreen=True)
+    li.setArt({'icon': icon or ICON, 'thumb': icon or ICON})
+    if plot: li.getVideoInfoTag().setPlot(plain(plot))
+    xbmcplugin.addDirectoryItem(HANDLE, build_url(**query), li, isFolder=False)
+
+
+def end(content='files', ok=True, cache=True):
+    xbmcplugin.setContent(HANDLE, content)
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=ok, cacheToDisc=cache)
+
+
+def next_page(query):
+    add_folder('Next Page', query, plot='Load more')
+
+
+# ------------------------------------------------------------------------------------ playback
+
+def play(stream, thumb=None, title=None):
+    """Resolve hosted links with ResolveURL; play direct streams as they are."""
+    hmf = resolveurl.HostedMediaFile(stream)
+    if hmf.valid_url():
+        link = hmf.resolve()
+        if not link:
+            raise RuntimeError('ResolveURL could not resolve %s' % stream)
+    else:
+        link = stream
+    li = xbmcgui.ListItem(plain(title or ADDON_NAME), path=link, offscreen=True)
+    if thumb: li.setArt({'thumb': thumb, 'icon': thumb})
+    if '.m3u8' in link.split('|')[0]:
+        li.setMimeType('application/vnd.apple.mpegurl')
+        li.setContentLookup(False)
+    xbmcplugin.setResolvedUrl(HANDLE, True, li)
+
+
+def choose(links, heading='Choose a source'):
+    """links: list of (label, url). One link plays straight away."""
+    if not links:
+        notify('Sorry, no links found')
+        return None
+    if len(links) == 1:
+        return links[0][1]
+    pick = xbmcgui.Dialog().select(heading, [plain(n) for n, _ in links])
+    return links[pick][1] if pick >= 0 else None
+
+
+# ------------------------------------------------------------------------------------- menus
+
+def root():
+    add_folder('Live XXX Channels', {'mode': 'live'}, plot='Live adult TV channels')
+    add_folder('Live XXX Cams', {'mode': 'cams'}, plot='Live cams from Chaturbate, with favourites and online alerts')
+    add_folder('XXX Movies', {'mode': 'movies'}, plot='Full-length movies')
+    add_folder('XXX Sites', {'mode': 'sites'}, plot='Videos from %d sites, or search them all' % len(_sources()))
+    add_action('Cum With Me Settings', {'mode': 'settings'}, plot='Performer online alerts')
+    end('files')
+
+
+# ------------------------------------------------------------------------------- live channels
+
+def _page_url(url, page, slash=True):
+    url = re.sub(r'/page/\d+/?$', '', url.rstrip('/'))
+    return '%s/page/%d%s' % (url, page, '/' if slash else '')
+
+
+def live(url=None, page=1):
+    soup = BeautifulSoup(get(url or LIVE_URL).text, 'html.parser')
+    found = 0
+    for fig in soup.find_all('figure', class_={'entry-item-thumb'}):
+        if not (fig.a and fig.img): continue
+        href = fig.a['href']
+        name = fig.img.get('alt') or fig.a.get('title') or href.rstrip('/').split('/')[-1].replace('-', ' ').title()
+        add_video(name, {'mode': 'play_live', 'url': href, 'thumb': fig.img.get('src', '')}, fig.img.get('src'))
+        found += 1
+    if found:
+        next_page({'mode': 'live', 'url': _page_url(LIVE_URL, page + 1), 'page': page + 1})
+    end('videos')
+
+
+def play_live(url, thumb=None):
+    soup = BeautifulSoup(get(url).text, 'html.parser')
+    iframe = soup.find('iframe')['src']
+    if not iframe.startswith('http'): iframe = LIVE_BASE + iframe
+    source = re.findall(r'''file:['"](.*?)['"]''', get(iframe, referer=url).text)[0]
+    play('%s|Referer=%s' % (source, iframe), thumb)
+
+
+# -------------------------------------------------------------------------------------- movies
+
+def movies(url=None, page=1):
+    base = url or MOVIE_URL
+    if page == 1 and not url:
+        add_folder('Studios', {'mode': 'movie_studios'}, plot='Browse by studio')
+    page_url = base if page == 1 else _page_url(base, page)
+    soup = BeautifulSoup(get(page_url).text, 'html.parser')
+    found = 0
+    for item in soup.find_all('div', class_={'ml-item'}):
+        if not (item.a and item.img): continue
+        href = item.a['href']
+        img = item.img.get('data-lazy-src') or item.img.get('src', '')
+        desc_tag = item.find('p', class_={'f-desc'})
+        desc = desc_tag.text.strip() if desc_tag else ''
+        title_tag = item.find(['h2', 'h3'])
+        name = (item.a.get('title') or item.a.get('oldtitle') or (title_tag.text.strip() if title_tag else '')
+                or item.img.get('alt') or href.rstrip('/').split('/')[-1].replace('-', ' ').title())
+        add_video(name, {'mode': 'play_movie', 'url': href, 'thumb': img}, img, desc)
+        found += 1
+    if found:
+        next_page({'mode': 'movies', 'url': url, 'page': page + 1})
+    end('movies' if found else 'videos')
+
+
+def movie_studios():
+    soup = BeautifulSoup(get(MOVIE_URL).text, 'html.parser')
+    menu = soup.find('li', id={'menu-item-23'})
+    for a in (menu.find_all('a') if menu else []):
+        if '#' not in a.get('href', '#'):
+            add_folder(a.text.strip(), {'mode': 'movies', 'url': a['href']})
+    end('files')
+
+
+def play_movie(url, thumb=None):
+    soup = BeautifulSoup(get(url).text, 'html.parser')
+    tabs = soup.find('div', id={'pettabs'})
+    links = []
+    for a in (tabs.find_all('a') if tabs else []):
+        href = a.get('href', '')
+        if href and resolveurl.HostedMediaFile(href).valid_url():
+            links.append(('Link %d  (%s)' % (len(links) + 1, urlparse(href).netloc), href))
+    stream = choose(links)
+    if not stream:
+        return cancel()
+    play(stream, thumb)
+
+
+# ---------------------------------------------------------------------------------------- cams
+
+def _db():
+    if not os.path.exists(DB_DIR): os.makedirs(DB_DIR)
+    conn = sqlite3.connect(DB)
+    conn.execute('CREATE TABLE IF NOT EXISTS chaturbate (name, url, image)')
+    return conn
+
+
+def _cam_context(name, url, image, fav):
+    if fav:
+        return [('Remove from favourites', 'RunPlugin(%s)' % build_url(mode='cam_unfav', url=url, name=name))]
+    return [('Add to favourites', 'RunPlugin(%s)' % build_url(mode='cam_fav', url=url, name=name, thumb=image))]
+
+
+def cams(url=None):
+    first = not url
+    url = url or CAM_URL
+    if first:
+        add_folder('Favourites', {'mode': 'cam_favs'}, plot='Your favourite performers and whether they are online')
+        add_folder('Tags', {'mode': 'cam_tags'}, plot='Browse cams by tag')
+        alerts = 'on' if ADDON.getSetting('Monitor') == 'true' else 'off'
+        add_action('Performer online alerts: %s' % alerts, {'mode': 'settings'},
+                   plot='Get a notification when a favourite performer comes online. Change in settings.')
+    rooms = get(url).json().get('rooms', [])
+    for r in rooms:
+        user = r.get('username', '')
+        if not user: continue
+        age = r.get('display_age') or '?'
+        if len(str(age)) >= 3: age = '?'
+        href = 'https://chaturbate.com/%s/' % user
+        plot = 'Age: %s\nViewers: %s\n\n%s' % (age, r.get('num_users', '?'), r.get('subject', ''))
+        add_video(user.title(), {'mode': 'play_cam', 'url': href, 'thumb': r.get('img', '')}, r.get('img'), plot,
+                  _cam_context(user.title(), href, r.get('img', ''), False))
+    if len(rooms) >= 100:
+        m = re.search(r'offset=(\d+)', url)
+        nxt = re.sub(r'offset=\d+', 'offset=%d' % (int(m.group(1)) + 100), url) if m else url + '&offset=100'
+        next_page({'mode': 'cams', 'url': nxt})
+    end('videos', cache=False)
+
+
+def cam_tags():
+    data = get(CAM_TAGS_URL).json()
+    for t in data.get('hashtags', []):
+        tag = t.get('hashtag', '')
+        if not tag: continue
+        add_folder('%s  (%s viewers)' % (tag.title(), t.get('viewer_count', '?')),
+                   {'mode': 'cams', 'url': 'https://chaturbate.com/api/ts/roomlist/room-list/?enable_recommendations=false'
+                                           '&hashtags=%s&limit=100&offset=0' % quote_plus(tag)})
+    end('files')
+
+
+def _cam_stream(url):
+    found = re.findall(r'''hls_source.+?(http.*?m3u8)''', get(url).text, flags=re.DOTALL)
+    return found[0].replace('u002D', '-').replace('\\-', '-').replace('\\u002D', '-').replace('\\', '') if found else None
+
+
+def cam_favs():
+    conn = _db()
+    rows = conn.execute('SELECT name, url, image FROM chaturbate').fetchall()
+    conn.close()
+    if not rows:
+        add_action('No favourites yet', {'mode': 'noop'},
+                   plot='Open the context menu on a performer in Live XXX Cams and choose Add to favourites.')
+    for name, url, image in rows:
+        try:
+            online = _cam_stream(url) is not None
+        except Exception as e:
+            log('favourite %s: %s' % (name, e)); online = None
+        state = {True: 'online', False: 'offline', None: 'unknown'}[online]
+        add_video('%s  (%s)' % (name, state), {'mode': 'play_cam', 'url': url, 'thumb': image}, image,
+                  'Currently %s' % state, _cam_context(name, url, image, True))
+    end('videos', cache=False)
+
+
+def cam_fav(url, name, thumb):
+    conn = _db()
+    if not conn.execute('SELECT 1 FROM chaturbate WHERE url = ?', (url,)).fetchone():
+        conn.execute('INSERT INTO chaturbate VALUES (?,?,?)', (name, url, thumb or ''))
+        conn.commit()
+    conn.close()
+    notify('%s added to favourites' % name, thumb or ICON)
+
+
+def cam_unfav(url, name):
+    conn = _db()
+    conn.execute('DELETE FROM chaturbate WHERE url = ?', (url,))
+    conn.commit(); conn.close()
+    notify('%s removed from favourites' % name)
+    xbmc.executebuiltin('Container.Refresh')
+
+
+def play_cam(url, thumb=None):
+    stream = _cam_stream(url)
+    if not stream:
+        notify('This performer is offline')
+        return cancel()
+    play(stream, thumb)
+
+
+# --------------------------------------------------------------------------------------- sites
+
+_SOURCES = None
+
+
+def _sources():
+    global _SOURCES
+    if _SOURCES is None:
+        from scrapers import sources
+        _SOURCES = sources()
+    return _SOURCES
+
+
+def _scraper(name):
+    for n, s in _sources():
+        if n.lower() == name.lower(): return s
+    raise KeyError('scraper %s not found' % name)
+
+
+def sites():
+    add_folder('Search All Sites', {'mode': 'search'}, plot='Search every site at once')
+    for name, _ in _sources():
+        add_folder(name.title(), {'mode': 'site', 'site': name}, plot='Videos from %s' % name.title())
+    end('files')
+
+
+def _video_rows(items, site):
+    count = 0
+    for info in items or []:
+        if not info.get('url'):       # 'Content From X' header rows
+            continue
+        img = info.get('image') or ICON
+        add_video(info.get('name', ''), {'mode': 'play_site', 'site': site, 'url': info['url'], 'thumb': img}, img)
+        count += 1
+    return count
+
+
+def site(name, url=''):
+    if not url:
+        add_folder('Categories', {'mode': 'site_cats', 'site': name}, plot='Browse %s by category' % name.title())
+    found = _video_rows(_scraper(name).MainContent(url), name)
+    if found:
+        try:
+            nxt = _scraper(name).GetNextPage(url)
+            if nxt: next_page({'mode': 'site', 'site': name, 'url': nxt})
+        except Exception as e:
+            log('%s next page: %s' % (name, e))
+    end('videos')
+
+
+def site_cats(name):
+    for c in _scraper(name).GetCats() or []:
+        if c.get('url'):
+            add_folder(c.get('name', ''), {'mode': 'site', 'site': name, 'url': c['url']})
+    end('files')
+
+
+def search(query=None):
+    if not query:
+        query = xbmcgui.Dialog().input('Search all sites')
+        if not query or len(query.strip()) < 2:
+            return end('videos', ok=False)
+        # show the results under their own URL so Back doesn't ask again
+        xbmc.executebuiltin('Container.Update(%s)' % build_url(mode='search', q=query.strip()))
+        return end('videos', ok=False)
+    progress = xbmcgui.DialogProgress()
+    progress.create(ADDON_NAME, 'Searching for %s...' % query)
+    total, found = len(_sources()), 0
+    for i, (name, scraper) in enumerate(_sources(), 1):
+        if progress.iscanceled(): break
+        try:
+            found += _video_rows(scraper.SearchSite(query), name)
+        except Exception as e:
+            log('search %s: %s' % (name, e))
+        progress.update(int(i * 100 / total), 'Searching %s\nVideos found: %d  |  Sites searched: %d of %d' % (name.title(), found, i, total))
+    progress.close()
+    if not found: notify('Nothing found for %s' % query)
+    end('videos')
+
+
+def play_site(name, url, thumb=None):
+    scrapers = [(_scraper(name))] if name else [s for n, s in _sources() if n.lower() in url.lower()]
+    links = []
+    for s in scrapers:
+        for l in s.ResolveLink(url) or []:
+            if l.get('url'): links.append((l.get('name', 'Link'), l['url']))
+    stream = choose(links)
+    if not stream:
+        return cancel()
+    play(stream, thumb)
+
+
+# --------------------------------------------------------------------------------------- router
+
+def cancel():
+    if HANDLE >= 0:
+        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem(offscreen=True))
+
+
+PLAY_MODES = {'play_live', 'play_movie', 'play_cam', 'play_site'}
+
+
+def router(params):
+    mode = params.get('mode')
+    url = params.get('url') or None
+    thumb = params.get('thumb') or None
+    page = int(params.get('page') or 1)
+    if mode is None: return root()
+    if mode == 'live': return live(url, page)
+    if mode == 'play_live': return play_live(url, thumb)
+    if mode == 'movies': return movies(url, page)
+    if mode == 'movie_studios': return movie_studios()
+    if mode == 'play_movie': return play_movie(url, thumb)
+    if mode == 'cams': return cams(url)
+    if mode == 'cam_tags': return cam_tags()
+    if mode == 'cam_favs': return cam_favs()
+    if mode == 'cam_fav': return cam_fav(url, params.get('name', ''), thumb)
+    if mode == 'cam_unfav': return cam_unfav(url, params.get('name', ''))
+    if mode == 'play_cam': return play_cam(url, thumb)
+    if mode == 'sites': return sites()
+    if mode == 'site': return site(params['site'], url or '')
+    if mode == 'site_cats': return site_cats(params['site'])
+    if mode == 'search': return search(params.get('q'))
+    if mode == 'play_site': return play_site(params.get('site', ''), url, thumb)
+    if mode == 'settings': return ADDON.openSettings()
+    if mode == 'noop': return
+    log('unknown mode %s' % mode, xbmc.LOGWARNING)
+    end(ok=False)
+
+
+def main():
+    params = dict(parse_qsl(sys.argv[2][1:] if len(sys.argv) > 2 else ''))
+    try:
+        router(params)
+    except Exception as e:
+        log('%s failed :: %s: %s' % (params.get('mode') or 'root', type(e).__name__, e), xbmc.LOGERROR)
+        notify('Could not load this right now (site down or changed)')
+        if HANDLE >= 0:
+            if params.get('mode') in PLAY_MODES:
+                cancel()
+            else:
+                xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
 if __name__ == '__main__':
-    try:
-        MainWindow()
-    finally:
-        # Kodi opened this as a plugin folder; tell it there is no listing so it stays where it
-        # was. (Replaces Container.Update(path,replace), which pointed Kodi at a folder called "path".)
-        if _handle() >= 0:
-            xbmcplugin.endOfDirectory(_handle(), succeeded=False, cacheToDisc=False)
+    main()

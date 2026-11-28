@@ -90,10 +90,33 @@ def _resize(w, h, px, nw, nh):
     return out
 
 
+def _feather(w, h, px, card):
+    """Fade an opaque logo's outer edge into the card when its background is close to the card colour
+    (soft vignettes and gradients would otherwise show a hard box)."""
+    border = _border(w, h, px)
+    if any(p[3] < 250 for p in border):
+        return px
+    dist = sum(abs(p[0] - card[0]) + abs(p[1] - card[1]) + abs(p[2] - card[2]) for p in border) / float(len(border))
+    if dist > 45:
+        return px                               # busy edge (a picture): keep it crisp
+    n = max(2, min(16, w // 12, h // 6))
+    px = bytearray(px)
+    for y in range(h):
+        ey = min(y, h - 1 - y)
+        for x in range(w):
+            e = min(x, w - 1 - x, ey)
+            if e >= n:
+                continue
+            i = (y * w + x) * 4 + 3
+            px[i] = px[i] * (e + 1) // (n + 1)
+    return px
+
+
 def make(w, h, px):
     """RGBA logo -> (width, height, RGB bytearray) 2:3 poster."""
     w, h, px = _trim(w, h, px)
     card = card_colour(w, h, px)
+    px = _feather(w, h, px, card)
     if w < MIN_LOGO_WIDTH:
         nw = MIN_LOGO_WIDTH
         nh = max(1, int(round(h * nw / float(w))))

@@ -2,7 +2,7 @@
 <settings>
 	<category label="General">
 		<setting id="enabled" type="bool" label="Keep Cumination's site logos in poster format" default="true"/>
-		<setting type="lsep" label="Applied automatically at startup and after Cumination updates"/>
+		<setting type="lsep" label="Checked when Kodi starts and each time Cumination is opened"/>
 		<setting id="apply" type="action" label="Apply now" action="RunScript(service.cumination.bingieposters,apply)"/>
 		<setting id="rebuild" type="action" label="Rebuild all posters" action="RunScript(service.cumination.bingieposters,rebuild)"/>
 		<setting id="restore" type="action" label="Restore Cumination's original logos" action="RunScript(service.cumination.bingieposters,restore)"/>

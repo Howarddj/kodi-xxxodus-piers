@@ -178,7 +178,7 @@
 	</extension>
 </addon>
 
-<addon id="service.cumination.bingieposters" name="Cumination Bingie Posters" version="1.0.0" provider-name="Howarddj">
+<addon id="service.cumination.bingieposters" name="Cumination Bingie Posters" version="1.1.0" provider-name="Howarddj">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="plugin.video.cumination" optional="true"/>
@@ -188,8 +188,9 @@
         <provides>executable</provides>
     </extension>
     <extension point="xbmc.addon.metadata">
+        <news>1.1.0: JPEG logos converted too; runs at startup and when Cumination is opened instead of every 30 minutes; fixes for Windows thumbnail cache and write errors</news>
         <summary lang="en">Shows Cumination's site logos properly in poster views (Bingie and other skins)</summary>
-        <description lang="en">Cumination's site logos are small wide banners. Skins that fit poster art into a fixed 2:3 frame, such as Bingie's poster views, stretch them out of shape. This service rebuilds each logo as a 2:3 poster: the logo unscaled in the middle, on a card in the logo's own background colour (or a light or dark card for transparent logos), kept inside the central 16:9 band so landscape and square views still show it whole. Originals are backed up and can be restored from the settings, and the posters are re-applied automatically after Cumination updates. JPEG, GIF and WebP logos are left as they are.</description>
+        <description lang="en">Cumination's site logos are wide banners. Skins that fit poster art into a fixed 2:3 frame, such as Bingie's poster views, stretch them out of shape. This service rebuilds each PNG and JPEG logo as a 2:3 poster: the logo undistorted in the middle (small logos enlarged smoothly), on a card in the logo's own background colour (or a light or dark card for transparent logos), kept inside the central 16:9 band so landscape and square views still show it whole. It checks once when Kodi starts and once each time Cumination is opened, so posters are re-applied after Cumination updates. Originals are backed up and can be restored from the settings. GIF and WebP logos are left as they are.</description>
         <platform>all</platform>
         <license>GPL-2.0-or-later</license>
         <assets>

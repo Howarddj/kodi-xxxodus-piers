@@ -97,7 +97,7 @@ def read(data):
                     a = trns[v] if trns and v < len(trns) else 255
                 else:
                     r = g = b = v * 255 // mask
-                    a = 0 if trns and v == struct.unpack('>H', trns[:2])[0] else 255
+                    a = 0 if trns and len(trns) >= 2 and v == struct.unpack('>H', trns[:2])[0] else 255
                 out[o:o + 4] = bytes((r, g, b, a))
                 o += 4
             continue

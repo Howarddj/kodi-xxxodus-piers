@@ -24,7 +24,6 @@ If you already installed an earlier patched build, step 3 shows XXX-O-DUS 99.00.
 | `script.xxxodus.artwork` | 99.00.003 | Stream Army 5.00.001 | Icons restyled (smaller, centred, rounded) |
 | `script.module.resolveurl` | 5.1.214 | Gujal00 | Unchanged |
 | `script.module.resolveurl.xxx` | 2.1.44 | Gujal00 | Unchanged |
-| `service.cumination.bingieposters` | 1.1.0 | New | Fixes Cumination site logos in Bingie poster views |
 | `repository.xxxodus.piers` | 1.0.0 | — | This repository |
 
 The repository add-on also points at Gujal00's upstream ResolveURL repository, so ResolveURL and ResolveURL-XXX keep updating.
@@ -77,15 +76,9 @@ The patched add-ons use version 99 so Stream Army releases never replace them, a
 
 Cum With Me was added in this repository's history and later dropped. Its 11 sites that XXX-O-DUS lacked are now XXX-O-DUS Tubes, with their site code in `script.xxxodus.scrapers/lib/cwm_engines/`. Its other sources (the live-channel site, Chaturbate, Pandamovies and 9 tube sites) were already in XXX-O-DUS, and so was its main feature, favourite performers with online alerts (Live Cams → Monitored Performers). If you installed it, uninstall it from **Video add-ons**: it will receive no further updates.
 
-## Cumination Bingie posters
+## Cumination add-ons (moved)
 
-`service.cumination.bingieposters` (Program add-ons → Cumination Bingie posters) fixes how Cumination's site logos look in Bingie's poster views. The logos are wide banners, and the poster views stretch or crop them into a 2:3 frame. The add-on turns each PNG and JPEG logo in your installed Cumination into a 2:3 poster: the logo is centred without distortion on a card matching its background, and small logos are enlarged smoothly.
-
-- It checks once when Kodi starts and once each time you open Cumination, so it re-applies after Cumination updates (and refreshes the open list when it does). Otherwise it does nothing.
-- It clears Kodi's cached thumbnails for those images, so the new posters show at once.
-- Your original images are backed up to the add-on's data folder. Settings has **Apply now**, **Rebuild all** and **Restore original logos**. Restore also turns the add-on off.
-- PNG logos stay PNG and JPEG logos stay JPEG; the one GIF and two WebP logos are left as they are.
-- Cumination itself is not modified apart from its image files, and it comes from its own repository (dobbelina).
+Cumination Bingie posters now lives in its own repository, [Howarddj/kodi-cumination-addons](https://github.com/Howarddj/kodi-cumination-addons), together with Cumination History. Install `repository.cumination.addons` from there to keep receiving updates.
 
 ## Rebuilding
 
